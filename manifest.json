@@ -1,0 +1,16 @@
+{
+  "name": "D&D 5e Companion v30",
+  "short_name": "D&D v30",
+  "description": "Ficha D&D v30 com salvamento local e nuvem.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1e3ca",
+  "theme_color": "#15110d",
+  "lang": "pt-BR",
+  "categories": [
+    "games",
+    "utilities"
+  ]
+}
