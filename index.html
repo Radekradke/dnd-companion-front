@@ -6093,28 +6093,49 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   const TOKEN_KEY  = 'dnd_cloud_auth_token_v31';
   const SAVE_KEY   = window.v30SaveKey || 'dnd_companion_character_autosave_v30';
   const API        = 'https://dnd-companion-api.onrender.com';
+  // Chaves pesadas a remover quando localStorage estiver cheio
+  const BIG_KEYS   = [SAVE_KEY,'dnd5e_v2','dnd_companion_character_autosave_v29','dnd_companion_character_autosave_v28','dnd_companion_character_autosave_v27'];
 
   function uid(){return 'dev_'+Math.random().toString(36).slice(2)+Date.now().toString(36);}
-  function deviceId(){let id=localStorage.getItem(DEVICE_KEY);if(!id){id=uid();localStorage.setItem(DEVICE_KEY,id);}return id;}
-  function apiBase(){return(localStorage.getItem(API_KEY)||API).replace(/\/+$/,'');}
-  function authToken(){return localStorage.getItem(TOKEN_KEY)||'';}
-  function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);}
+
+  // ── Storage seguro: tenta localStorage, fallback sessionStorage ──
+  // Quando localStorage está cheio, auth-critical keys ficam em sessionStorage.
+  function storeAuth(key, val){
+    try{ localStorage.setItem(key, val); return; }catch(e){}
+    // Tenta liberar espaço removendo chaves grandes do personagem (nuvem é o primário)
+    try{
+      for(const big of BIG_KEYS){ try{ localStorage.removeItem(big); }catch(_){} }
+      localStorage.setItem(key, val); return;
+    }catch(e){}
+    // Fallback: sessionStorage (persiste até fechar a aba)
+    try{ sessionStorage.setItem(key, val); }catch(e){ console.warn('[storeAuth] falhou:', key); }
+  }
+  function readAuth(key){
+    try{ const v=localStorage.getItem(key); if(v!==null) return v; }catch(e){}
+    try{ return sessionStorage.getItem(key); }catch(e){}
+    return null;
+  }
+  function removeAuth(key){
+    try{ localStorage.removeItem(key); }catch(e){}
+    try{ sessionStorage.removeItem(key); }catch(e){}
+  }
 
   // Salva localmente, tolerando quota cheia
   function safeLocalSave(key, value){
-    try{ localStorage.setItem(key, value); }
-    catch(e){
-      // Quota cheia: limpa chaves antigas e tenta de novo
-      try{
-        const keep=[TOKEN_KEY,SLOT_KEY,DEVICE_KEY,API_KEY,'dnd5e_v2'];
-        for(let i=localStorage.length-1;i>=0;i--){
-          const k=localStorage.key(i);
-          if(k&&!keep.includes(k)&&k!==key){ localStorage.removeItem(k); break; }
-        }
-        localStorage.setItem(key, value);
-      }catch(e2){ console.warn('[save] localStorage cheio, ignorando save local'); }
-    }
+    try{ localStorage.setItem(key, value); return; }catch(e){}
+    try{
+      for(const big of BIG_KEYS){ try{ if(big!==key) localStorage.removeItem(big); }catch(_){} }
+      localStorage.setItem(key, value);
+    }catch(e2){ console.warn('[save] localStorage cheio, ignorando save local'); }
   }
+
+  function apiBase(){return(localStorage.getItem(API_KEY)||API).replace(/\/+$/,'');}
+  function authToken(){return readAuth(TOKEN_KEY)||'';}
+  function setToken(t){if(t)storeAuth(TOKEN_KEY,t);else removeAuth(TOKEN_KEY);}
+  function deviceId(){let id=readAuth(DEVICE_KEY);if(!id){id=uid();storeAuth(DEVICE_KEY,id);}return id;}
+  function activeSlot(){return readAuth(SLOT_KEY)||'';}
+  function setActiveSlot(id){if(id)storeAuth(SLOT_KEY,id);}
+  function clearSlot(){removeAuth(SLOT_KEY);}
 
   function cloudStatus(msg,type){
     ['v30-cloud-status','v44-cloud-status'].forEach(id=>{
@@ -6124,34 +6145,29 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   }
   function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
-  function ensureApi(){
-    const api=apiBase();
-    if(!api){cloudStatus('Configure a URL da API primeiro.','err');vconfigOpen();return null;}
-    return api;
-  }
-
   async function request(path,opts={}){
-    const api=ensureApi();if(!api)throw new Error('API não configurada');
     const token=authToken();
     const headers={'Content-Type':'application/json','x-device-id':deviceId(),...(opts.headers||{})};
     if(token)headers['Authorization']='Bearer '+token;
-    const res=await fetch(api+path,{...opts,headers});
+    const res=await fetch(apiBase()+path,{...opts,headers});
     const data=await res.json().catch(()=>({}));
     if(!res.ok){
       if(res.status===401){setToken('');renderAccountBar();}
-      throw new Error(data.error||'Erro na API');
+      throw new Error(data.error||'Erro na API ('+res.status+')');
     }
     return data;
   }
 
   function currentSnapshot(){
-    // NÃO chama window.saveData aqui — evita loop infinito com o patch de auto-save
+    // Lê direto do DOM — não depende de localStorage
     try{if(window.v30BuildSnapshot)return window.v30BuildSnapshot();}catch(e){}
     try{return JSON.parse(localStorage.getItem(SAVE_KEY)||'{}');}catch(e){return {};}
   }
-  function summaryFromSnapshot(s){const f=s?.form||{};const name=f.pname||'Personagem sem nome';return{name,race:f.praca||'',class:f.pclasse||'',level:f.pnivel||'1',hp:f['hp-atual']||'',updatedAt:new Date().toISOString()};}
-  function activeSlot(){return localStorage.getItem(SLOT_KEY)||'';}
-  function setActiveSlot(id){if(id)localStorage.setItem(SLOT_KEY,id);}
+  function summaryFromSnapshot(s){
+    const f=s?.form||{};
+    const name=f.pname||f['p-nome']||'Personagem sem nome';
+    return{name,race:f.praca||f['p-raca']||'',class:f.pclasse||f['p-classe']||'',level:f.pnivel||f['p-nivel']||'1',hp:f['hp-atual']||'',updatedAt:new Date().toISOString()};
+  }
 
   function getAccountInfo(){
     const token=authToken();if(!token)return null;
@@ -6159,7 +6175,7 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
       const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
       if(payload.exp&&payload.exp*1000<Date.now()){setToken('');return null;}
       return payload;
-    }catch(e){return null;}
+    }catch(e){setToken('');return null;}
   }
 
   function renderAccountBar(){
@@ -6197,16 +6213,14 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   // ── CLOUD OVERLAY ──
   window.v30CloudOpen=function(){
     document.getElementById('v30-cloud-overlay')?.classList.remove('hidden');
-    renderAccountBar();
-    const api=apiBase();
-    cloudStatus(api?'':'Configure a URL da API para ativar a nuvem.',api?'':'');
-    if(api)v30CloudList();
+    renderAccountBar();v30CloudList();
   };
   window.v30CloudClose=function(){document.getElementById('v30-cloud-overlay')?.classList.add('hidden');};
   window.v30CloudConfig=function(){vconfigOpen();};
 
   async function cloudSaveSnapshot(){
     const snapshot=currentSnapshot();
+    if(!snapshot||Object.keys(snapshot).length===0) throw new Error('Snapshot vazio — preencha a ficha antes de salvar.');
     const summary=summaryFromSnapshot(snapshot);
     const payload={name:summary.name,summary,data:snapshot};
     let id=activeSlot();
@@ -6214,7 +6228,7 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
       try{ const saved=await request('/characters/'+id,{method:'PUT',body:JSON.stringify(payload)}); setActiveSlot(saved.id); return saved; }
       catch(e){
         if(e.message.includes('não encontrado')||e.message.includes('404')||e.message.includes('Not Found')){
-          localStorage.removeItem(SLOT_KEY); id='';
+          clearSlot(); id='';
         } else throw e;
       }
     }
@@ -6226,40 +6240,47 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   window.v30CloudSave=async function(){
     try{
       cloudStatus('Salvando ficha na nuvem...','');
-      await cloudSaveSnapshot();
-      cloudStatus('Ficha salva na nuvem com sucesso.','ok');
+      const saved=await cloudSaveSnapshot();
+      const name=saved?.name||'Personagem';
+      cloudStatus(`✓ "${name}" salvo na nuvem.`,'ok');
       v30CloudList();
-    }catch(e){cloudStatus(e.message,'err');}
+    }catch(e){cloudStatus('Erro: '+e.message,'err');}
   };
   window.v30CloudNewSlot=async function(){
-    try{localStorage.removeItem(SLOT_KEY);await v30CloudSave();}catch(e){cloudStatus(e.message,'err');}
+    try{clearSlot();await v30CloudSave();}catch(e){cloudStatus('Erro: '+e.message,'err');}
   };
   window.v30CloudList=async function(){
-    try{if(!apiBase())return;cloudStatus('Buscando personagens...');const data=await request('/characters');renderList(data.characters||[]);cloudStatus('Lista atualizada.','ok');}
-    catch(e){cloudStatus(e.message,'err');}
+    try{
+      cloudStatus('Buscando personagens...');
+      const data=await request('/characters');
+      renderList(data.characters||[]);
+      cloudStatus(data.characters?.length?`${data.characters.length} personagem(ns) na nuvem.`:'Nenhum personagem salvo.','ok');
+      return data;
+    }catch(e){cloudStatus('Erro ao listar: '+e.message,'err');}
   };
   window.v30CloudUseSlot=function(id){setActiveSlot(id);cloudStatus('Slot ativo definido. O próximo save atualizará este personagem.','ok');v30CloudList();};
-  window.v30CloudLoadActive=function(){const id=activeSlot();if(!id){cloudStatus('Escolha um slot na lista primeiro.','err');return;}return v30CloudLoad(id);};
+  window.v30CloudLoadActive=function(){const id=activeSlot();if(!id){cloudStatus('Escolha um personagem na lista e clique "Slot" primeiro.','err');return;}return v30CloudLoad(id);};
   window.v30CloudLoad=async function(id){
     try{
       cloudStatus('Carregando personagem da nuvem...');
       const c=await request('/characters/'+id);setActiveSlot(c.id);
       const snapshot=c.data;
       if(window.v30RestoreSnapshot){window.v30RestoreSnapshot(snapshot);}
-      else{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));location.reload();return;}
-      try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot));}catch(e){}
-      cloudStatus('Personagem carregado da nuvem.','ok');showToast?.('Ficha carregada da nuvem');
+      else{safeLocalSave(SAVE_KEY,JSON.stringify(snapshot));location.reload();return;}
+      safeLocalSave(SAVE_KEY,JSON.stringify(snapshot));
+      const name=c.name||snapshot?.form?.pname||'Personagem';
+      cloudStatus(`✓ "${name}" carregado.`,'ok');showToast?.(`Ficha "${name}" carregada`);
       setTimeout(()=>{try{window.saveData?.(false);}catch(e){}},150);
-    }catch(e){cloudStatus(e.message,'err');showToast?.('Erro ao carregar da nuvem');}
+    }catch(e){cloudStatus('Erro ao carregar: '+e.message,'err');showToast?.('Erro ao carregar da nuvem');}
   };
   window.v30CloudDelete=async function(id,name){
     if(!confirm(`Deletar "${name}" da nuvem?\n\nEsta ação não pode ser desfeita.`))return;
     try{
       cloudStatus('Deletando personagem...');
       await request('/characters/'+id,{method:'DELETE'});
-      if(activeSlot()===id)localStorage.removeItem(SLOT_KEY);
-      cloudStatus('Personagem deletado.','ok');showToast?.('Personagem deletado');v30CloudList();
-    }catch(e){cloudStatus(e.message,'err');}
+      if(activeSlot()===id)clearSlot();
+      cloudStatus(`"${name}" deletado.`,'ok');showToast?.('Personagem deletado');v30CloudList();
+    }catch(e){cloudStatus('Erro: '+e.message,'err');}
   };
   window.v30CloudClone=async function(id,name){
     try{
@@ -6268,7 +6289,7 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
       const payload={name:c.name+' (cópia)',summary:{...c.summary,name:c.name+' (cópia)'},data:c.data};
       await request('/characters',{method:'POST',body:JSON.stringify(payload)});
       cloudStatus('Personagem clonado com sucesso.','ok');showToast?.('Personagem clonado');v30CloudList();
-    }catch(e){cloudStatus(e.message,'err');}
+    }catch(e){cloudStatus('Erro: '+e.message,'err');}
   };
 
   // ── AUTH MODAL ──
@@ -6295,13 +6316,17 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
       const data=await res.json().catch(()=>({}));
       if(!res.ok)throw new Error(data.error||'Erro na autenticação.');
       setToken(data.token);
-      authStatus('Sucesso!','ok');
-      setTimeout(()=>{
+      // Confirma que o token foi salvo (falha silenciosa se localStorage E sessionStorage cheios)
+      if(!authToken()){authStatus('Sessão salva temporariamente. Recarregue se sair da conta.','ok');}
+      else{authStatus('Logado como '+data.email,'ok');}
+      setTimeout(async()=>{
         vauthClose();
         renderAccountBar();
         cloudStatus('Logado como '+data.email+'. Buscando personagens...','ok');
-        v30CloudList();
-        offerMigration();
+        await offerMigration();
+        await v30CloudList();
+        // Se a ficha está em branco, carrega automaticamente o personagem mais recente
+        autoLoadIfEmpty();
       },700);
     }catch(e){
       authStatus(e.message.includes('Failed to fetch')?'Servidor indisponível. Tente novamente em instantes.':e.message,'err');
@@ -6320,7 +6345,7 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   };
   window.vauthLogout=function(){
     if(!confirm('Sair da conta? Seus personagens na nuvem continuam seguros.'))return;
-    setToken('');renderAccountBar();cloudStatus('Sessão encerrada. Usando deviceId local.','');v30CloudList();
+    setToken('');renderAccountBar();cloudStatus('Sessão encerrada.','');v30CloudList();
   };
 
   async function offerMigration(){
@@ -6330,6 +6355,26 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
       const d=await res.json().catch(()=>({}));
       if(d.migrated>0){showToast?.(`${d.migrated} personagem(ns) migrado(s) para sua conta`);v30CloudList();}
     }catch(e){console.warn('[migrate]',e);}
+  }
+
+  // Se a ficha está em branco, carrega automaticamente o personagem mais recente da nuvem
+  async function autoLoadIfEmpty(){
+    try{
+      const formName=(document.getElementById('pname')?.value||'').trim();
+      const data=await request('/characters');
+      const chars=data?.characters||[];
+      if(chars.length===0){cloudStatus('Conta pronta. Preencha a ficha e clique "Salvar na nuvem".','ok');return;}
+      if(formName&&formName.length>0){
+        // Ficha já tem personagem — apenas garante que o slot ativo aponta para um personagem real
+        const slot=activeSlot();
+        if(!slot||!chars.find(c=>c.id===slot)){setActiveSlot(chars[0].id);}
+        return;
+      }
+      // Ficha em branco — carrega o personagem mais recente
+      const toLoad=chars.find(c=>c.id===activeSlot())||chars[0];
+      cloudStatus(`Carregando "${toLoad.name}" automaticamente...`,'ok');
+      await v30CloudLoad(toLoad.id);
+    }catch(e){console.warn('[autoLoadIfEmpty]',e);}
   }
 
   // ── CONFIG MODAL ──
@@ -6342,7 +6387,7 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   window.vconfigSave=async function(){
     const url=(document.getElementById('vconfig-url-input')?.value||'').trim().replace(/\/+$/,'');
     if(!url){alert('Cole a URL do backend.');return;}
-    localStorage.setItem(API_KEY,url);vconfigClose();
+    safeLocalSave(API_KEY,url);vconfigClose();
     cloudStatus('API configurada. Testando conexão...','');
     try{
       const res=await fetch(url+'/health');const d=await res.json().catch(()=>({}));
@@ -6352,15 +6397,14 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   };
 
   // ── KEEP-ALIVE: ping a cada 14min para manter Render acordado ──
-  setInterval(function(){const api=apiBase();if(!api)return;fetch(api+'/health').catch(()=>{});},14*60*1000);
+  setInterval(function(){fetch(apiBase()+'/health').catch(()=>{});},14*60*1000);
 
   // ── AUTO-SAVE NA NUVEM quando logado ──
-  // Debounce de 10s após qualquer saveData, sem recursão
   let cloudSaveTimer=null;
   let _cloudSaving=false;
   const _origSave=window.saveData;
   window.saveData=function(){
-    if(_cloudSaving) return; // evita loop se saveData for chamado durante auto-save
+    if(_cloudSaving) return;
     try{ _origSave?.apply(this,arguments); }catch(e){}
     if(!getAccountInfo()) return;
     clearTimeout(cloudSaveTimer);
@@ -6368,14 +6412,14 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
       if(!getAccountInfo()) return;
       _cloudSaving=true;
       try{
-        await cloudSaveSnapshot();
-        cloudStatus('Salvo automaticamente na nuvem.','ok');
+        const saved=await cloudSaveSnapshot();
+        cloudStatus(`✓ Auto-salvo: "${saved?.name||'Personagem'}".`,'ok');
       }catch(e){
         cloudStatus('Auto-save falhou: '+e.message,'err');
       }finally{
         _cloudSaving=false;
       }
-    },10000);
+    },5000); // 5s debounce
   };
 
   // ── PDF / IMPRESSÃO ──
@@ -6391,21 +6435,22 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   // Init — valida slot ativo e carrega lista se logado
   renderAccountBar();
   (async function init(){
+    if(!getAccountInfo()) return;
     const id=activeSlot();
-    if(id && getAccountInfo()){
-      // Verifica se o slot ainda existe; limpa se não
-      try{
-        await request('/characters/'+id);
-      }catch(e){
-        if(e.message.includes('não encontrado')||e.message.includes('404')||e.message.includes('Not Found')){
-          localStorage.removeItem(SLOT_KEY);
-          cloudStatus('Slot anterior não encontrado. Salve para criar um novo.','');
+    if(id){
+      try{ await request('/characters/'+id); }
+      catch(e){
+        // Só limpa o slot em caso de 404 confirmatório; erros de rede preservam o slot
+        if(e.message.includes('não encontrado')||e.message.includes('404')){
+          clearSlot();
+          cloudStatus('Slot anterior removido. Salve para criar um novo.','');
         }
       }
     }
-    if(getAccountInfo()){
-      setTimeout(()=>v30CloudList().catch(()=>{}),1500);
-    }
+    setTimeout(async()=>{
+      await v30CloudList().catch(()=>{});
+      await autoLoadIfEmpty();
+    },1500);
   })();
 })();
 
