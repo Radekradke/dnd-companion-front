@@ -2015,14 +2015,17 @@ textarea:focus{
       </div>
       <button class="v44-backup-close" type="button" onclick="v44BackupClose()" aria-label="Fechar">×</button>
     </div>
+    <div id="v44-account-bar" class="v30-account-bar" style="margin-top:4px"></div>
     <div class="v44-backup-grid">
-      <button class="v44-backup-action primary" type="button" onclick="v43ExportFullBackup()"><strong>Exportar backup completo</strong><span>Baixa um JSON com tudo do personagem</span></button>
-      <button class="v44-backup-action" type="button" onclick="v44TriggerImport()"><strong>Importar backup completo</strong><span>Restaura um JSON salvo anteriormente</span></button>
+      <button class="v44-backup-action primary" type="button" onclick="v43ExportFullBackup()"><strong>Exportar backup</strong><span>Baixa um JSON com tudo do personagem</span></button>
+      <button class="v44-backup-action" type="button" onclick="v44TriggerImport()"><strong>Importar backup</strong><span>Restaura um JSON salvo anteriormente</span></button>
       <button class="v44-backup-action" type="button" onclick="v30CloudSave()"><strong>Salvar na nuvem</strong><span>Atualiza o slot ativo no backend</span></button>
       <button class="v44-backup-action" type="button" onclick="v30CloudLoadActive()"><strong>Carregar da nuvem</strong><span>Restaura o slot ativo salvo</span></button>
-      <button class="v44-backup-action" type="button" onclick="v30CloudConfig()"><strong>Configurar API</strong><span>Colar URL do Render/backend</span></button>
+      <button class="v44-backup-action" type="button" onclick="vconfigOpen()"><strong>Configurar API</strong><span>URL do backend no Render</span></button>
       <button class="v44-backup-action" type="button" onclick="v30CloudList()"><strong>Atualizar lista</strong><span>Busca personagens salvos na nuvem</span></button>
     </div>
+    <div id="v44-cloud-status" style="font-size:12px;min-height:16px;color:#7a664d;margin:6px 2px 0;text-align:center"></div>
+    <div id="v44-cloud-list" style="margin-top:8px"></div>
     <input id="v44-import-file" type="file" accept="application/json,.json" style="display:none" onchange="v43ImportFullBackupFile(event)">
     <div class="v44-backup-note">Nada fica de fora: ficha, atributos, HP, inspiração, equipamentos, mochila, armas, magias, slots, dados, condições, descanso, lore, diário por sessão, anotações importantes, NPCs, locais, facções, pendências e localStorage do app.</div>
   </section>
@@ -6085,7 +6088,12 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   function authToken(){return localStorage.getItem(TOKEN_KEY)||'';}
   function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);}
 
-  function cloudStatus(msg,type){const el=document.getElementById('v30-cloud-status');if(!el)return;el.textContent=msg;el.classList.remove('ok','err');if(type)el.classList.add(type);}
+  function cloudStatus(msg,type){
+    ['v30-cloud-status','v44-cloud-status'].forEach(id=>{
+      const el=document.getElementById(id);if(!el)return;
+      el.textContent=msg;el.className=(id==='v30-cloud-status'?'v30-cloud-status ':'')+(type||'');
+    });
+  }
   function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
   function ensureApi(){
@@ -6127,19 +6135,16 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   }
 
   function renderAccountBar(){
-    const bar=document.getElementById('v30-account-bar');if(!bar)return;
     const info=getAccountInfo();
-    if(info){
-      bar.innerHTML=`<span class="v30-account-email">✓ ${escapeHtml(info.email)}</span><button class="v30-account-btn" type="button" onclick="vauthLogout()">Sair da conta</button>`;
-    }else{
-      bar.innerHTML=`<span class="v30-account-email" style="color:#9a8060">Modo anônimo (deviceId)</span><button class="v30-account-btn" type="button" onclick="vauthOpen()">Entrar / Cadastrar</button>`;
-    }
+    const html=info
+      ?`<span class="v30-account-email">✓ ${escapeHtml(info.email)}</span><button class="v30-account-btn" type="button" onclick="vauthLogout()">Sair da conta</button>`
+      :`<span class="v30-account-email" style="color:#9a8060">Modo anônimo</span><button class="v30-account-btn" type="button" onclick="vauthOpen()">Entrar / Cadastrar</button>`;
+    ['v30-account-bar','v44-account-bar'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=html;});
   }
 
   function renderList(items){
-    const box=document.getElementById('v30-cloud-list');if(!box)return;
-    if(!items?.length){box.innerHTML='<div style="padding:12px;text-align:center;color:#9a8060;font-size:13px">Nenhum personagem salvo nesta nuvem.</div>';return;}
-    box.innerHTML=items.map(c=>{
+    const empty='<div style="padding:12px;text-align:center;color:#9a8060;font-size:13px">Nenhum personagem salvo nesta nuvem.</div>';
+    const html=items?.length?items.map(c=>{
       const s=c.summary||{};
       const meta=[s.race,s.class,s.level?`Nv.${s.level}`:''].filter(Boolean).join(' · ');
       const active=c.id===activeSlot();
@@ -6157,7 +6162,8 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
           <button class="v30-cloud-item-del" onclick="v30CloudDelete('${safeId}','${safeName}')" title="Deletar">✕</button>
         </div>
       </div>`;
-    }).join('');
+    }).join(''):empty;
+    ['v30-cloud-list','v44-cloud-list'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=html;});
   }
 
   // ── CLOUD OVERLAY ──
@@ -6295,6 +6301,10 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
 
   // ── KEEP-ALIVE: ping a cada 14min para manter Render acordado ──
   setInterval(function(){const api=apiBase();if(!api)return;fetch(api+'/health').catch(()=>{});},14*60*1000);
+
+  // Expõe utilitários para outros módulos
+  window.renderAccountBar = renderAccountBar;
+  window.apiBase = apiBase;
 
   // Init
   renderAccountBar();
@@ -7113,7 +7123,12 @@ Pendências para a próxima sessão:
 (function(){
   window.v44BackupOpen=function(){
     const panel=document.getElementById('v44-backup-overlay');
-    if(panel){ panel.classList.remove('hidden'); return; }
+    if(panel){
+      panel.classList.remove('hidden');
+      try{ window.renderAccountBar?.(); }catch(e){}
+      try{ if(window.apiBase?.()) window.v30CloudList?.(); }catch(e){}
+      return;
+    }
     if(typeof window.v30CloudOpen==='function') window.v30CloudOpen();
   };
   window.v44BackupClose=function(){document.getElementById('v44-backup-overlay')?.classList.add('hidden');};
