@@ -1934,6 +1934,16 @@ textarea:focus{
 /* ===== CLOUD LIST: DELETE + CLONE ===== */
 .v30-cloud-item-del{background:none;border:1px solid rgba(192,57,43,.4);border-radius:8px;color:#c0392b;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer}
 .v30-cloud-item-del:hover{background:rgba(192,57,43,.1)}
+/* ===== PRINT / PDF ===== */
+@media print{
+  .v30-cloud-fab,.v44-backup-fab,.v30-cloud-overlay,.v44-backup-overlay,
+  .vauth-overlay,.vconfig-overlay,.app-nav,nav,
+  button:not(.print-keep){display:none!important}
+  body{background:#fff!important;color:#000!important}
+  .section{display:block!important;page-break-inside:avoid}
+  .section:not(.active){display:none!important}
+  input,textarea,select{border:1px solid #ccc!important;background:#fff!important;color:#000!important}
+}
 </style>
 
 </head>
@@ -2017,7 +2027,8 @@ textarea:focus{
     </div>
     <div id="v44-account-bar" class="v30-account-bar" style="margin-top:4px"></div>
     <div class="v44-backup-grid">
-      <button class="v44-backup-action primary" type="button" onclick="v43ExportFullBackup()"><strong>Exportar backup</strong><span>Baixa um JSON com tudo do personagem</span></button>
+      <button class="v44-backup-action primary" type="button" onclick="v43ExportFullBackup()"><strong>Exportar JSON</strong><span>Baixa um arquivo com tudo do personagem</span></button>
+      <button class="v44-backup-action primary" type="button" onclick="v32PrintSheet()"><strong>Exportar PDF</strong><span>Abre impressão — salve como PDF</span></button>
       <button class="v44-backup-action" type="button" onclick="v44TriggerImport()"><strong>Importar backup</strong><span>Restaura um JSON salvo anteriormente</span></button>
       <button class="v44-backup-action" type="button" onclick="v30CloudSave()"><strong>Salvar na nuvem</strong><span>Atualiza o slot ativo no backend</span></button>
       <button class="v44-backup-action" type="button" onclick="v30CloudLoadActive()"><strong>Carregar da nuvem</strong><span>Restaura o slot ativo salvo</span></button>
@@ -6074,20 +6085,36 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
 })();
 
 
-// ===================== v31 — NUVEM COM AUTENTICAÇÃO =====================
+// ===================== v32 — NUVEM COMO SAVE PRINCIPAL =====================
 (function(){
   const API_KEY    = 'dnd_cloud_api_url_v30';
   const SLOT_KEY   = 'dnd_cloud_active_slot_v30';
   const DEVICE_KEY = 'dnd_cloud_device_v30';
   const TOKEN_KEY  = 'dnd_cloud_auth_token_v31';
   const SAVE_KEY   = window.v30SaveKey || 'dnd_companion_character_autosave_v30';
+  const API        = 'https://dnd-companion-api.onrender.com';
 
   function uid(){return 'dev_'+Math.random().toString(36).slice(2)+Date.now().toString(36);}
   function deviceId(){let id=localStorage.getItem(DEVICE_KEY);if(!id){id=uid();localStorage.setItem(DEVICE_KEY,id);}return id;}
-  const DEFAULT_API='https://dnd-companion-api.onrender.com';
-  function apiBase(){return(localStorage.getItem(API_KEY)||DEFAULT_API).replace(/\/+$/,'');}
+  function apiBase(){return(localStorage.getItem(API_KEY)||API).replace(/\/+$/,'');}
   function authToken(){return localStorage.getItem(TOKEN_KEY)||'';}
   function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);}
+
+  // Salva localmente, tolerando quota cheia
+  function safeLocalSave(key, value){
+    try{ localStorage.setItem(key, value); }
+    catch(e){
+      // Quota cheia: limpa chaves antigas e tenta de novo
+      try{
+        const keep=[TOKEN_KEY,SLOT_KEY,DEVICE_KEY,API_KEY,'dnd5e_v2'];
+        for(let i=localStorage.length-1;i>=0;i--){
+          const k=localStorage.key(i);
+          if(k&&!keep.includes(k)&&k!==key){ localStorage.removeItem(k); break; }
+        }
+        localStorage.setItem(key, value);
+      }catch(e2){ console.warn('[save] localStorage cheio, ignorando save local'); }
+    }
+  }
 
   function cloudStatus(msg,type){
     ['v30-cloud-status','v44-cloud-status'].forEach(id=>{
@@ -6244,17 +6271,24 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   function authStatus(msg,type){const el=document.getElementById('vauth-status');if(!el)return;el.textContent=msg;el.className='vauth-status'+(type?' '+type:'');}
   async function authCall(endpoint,email,password,btnEl){
     if(!email||!password){authStatus('Preencha e-mail e senha.','err');return;}
-    const api=apiBase();if(!api){authStatus('Configure a URL da API antes de entrar.','err');vconfigOpen();return;}
     if(btnEl)btnEl.disabled=true;
+    authStatus('Conectando...','');
     try{
-      const res=await fetch(api+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+      const res=await fetch(apiBase()+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
       const data=await res.json().catch(()=>({}));
       if(!res.ok)throw new Error(data.error||'Erro na autenticação.');
       setToken(data.token);
       authStatus('Sucesso!','ok');
-      setTimeout(()=>{vauthClose();renderAccountBar();cloudStatus('Logado como '+data.email+'. Buscando personagens...','ok');v30CloudList();offerMigration();},700);
-    }catch(e){authStatus(e.message,'err');}
-    finally{if(btnEl)btnEl.disabled=false;}
+      setTimeout(()=>{
+        vauthClose();
+        renderAccountBar();
+        cloudStatus('Logado como '+data.email+'. Buscando personagens...','ok');
+        v30CloudList();
+        offerMigration();
+      },700);
+    }catch(e){
+      authStatus(e.message.includes('Failed to fetch')?'Servidor indisponível. Tente novamente em instantes.':e.message,'err');
+    }finally{if(btnEl)btnEl.disabled=false;}
   }
   window.vauthLogin=function(){
     const email=document.getElementById('vauth-email-l')?.value?.trim();
@@ -6303,12 +6337,44 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   // ── KEEP-ALIVE: ping a cada 14min para manter Render acordado ──
   setInterval(function(){const api=apiBase();if(!api)return;fetch(api+'/health').catch(()=>{});},14*60*1000);
 
+  // ── AUTO-SAVE NA NUVEM quando logado ──
+  // Intercepta o saveData existente e dispara cloud save com debounce de 8s
+  let cloudSaveTimer=null;
+  const _origSave=window.saveData;
+  window.saveData=function(){
+    try{ _origSave?.apply(this,arguments); }catch(e){}
+    if(!getAccountInfo())return;
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=setTimeout(async()=>{
+      try{
+        const snapshot=currentSnapshot();
+        const summary=summaryFromSnapshot(snapshot);
+        const id=activeSlot();
+        const payload={name:summary.name,summary,data:snapshot};
+        const saved=id
+          ?await request('/characters/'+id,{method:'PUT',body:JSON.stringify(payload)})
+          :await request('/characters',{method:'POST',body:JSON.stringify(payload)});
+        setActiveSlot(saved.id);
+        cloudStatus('Salvo na nuvem automaticamente.','ok');
+      }catch(e){ cloudStatus('Auto-save falhou: '+e.message,'err'); }
+    },8000);
+  };
+
+  // ── PDF / IMPRESSÃO ──
+  window.v32PrintSheet=function(){
+    cloudStatus('Abrindo visualização de impressão...','');
+    window.print();
+  };
+
   // Expõe utilitários para outros módulos
   window.renderAccountBar = renderAccountBar;
   window.apiBase = apiBase;
 
-  // Init
+  // Init — aguarda DOM e já tenta listar se logado
   renderAccountBar();
+  if(getAccountInfo()){
+    setTimeout(()=>v30CloudList().catch(()=>{}),1200);
+  }
 })();
 
 (function(){
