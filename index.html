@@ -6145,7 +6145,7 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   }
 
   function currentSnapshot(){
-    try{window.saveData?.(false);}catch(e){}
+    // NÃO chama window.saveData aqui — evita loop infinito com o patch de auto-save
     try{if(window.v30BuildSnapshot)return window.v30BuildSnapshot();}catch(e){}
     try{return JSON.parse(localStorage.getItem(SAVE_KEY)||'{}');}catch(e){return {};}
   }
@@ -6205,14 +6205,31 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   window.v30CloudClose=function(){document.getElementById('v30-cloud-overlay')?.classList.add('hidden');};
   window.v30CloudConfig=function(){vconfigOpen();};
 
+  async function cloudSaveSnapshot(){
+    const snapshot=currentSnapshot();
+    const summary=summaryFromSnapshot(snapshot);
+    const payload={name:summary.name,summary,data:snapshot};
+    let id=activeSlot();
+    if(id){
+      try{ const saved=await request('/characters/'+id,{method:'PUT',body:JSON.stringify(payload)}); setActiveSlot(saved.id); return saved; }
+      catch(e){
+        if(e.message.includes('não encontrado')||e.message.includes('404')||e.message.includes('Not Found')){
+          localStorage.removeItem(SLOT_KEY); id='';
+        } else throw e;
+      }
+    }
+    const saved=await request('/characters',{method:'POST',body:JSON.stringify(payload)});
+    setActiveSlot(saved.id);
+    return saved;
+  }
+
   window.v30CloudSave=async function(){
     try{
-      const snapshot=currentSnapshot();const summary=summaryFromSnapshot(snapshot);const id=activeSlot();
       cloudStatus('Salvando ficha na nuvem...','');
-      const payload={name:summary.name,summary,data:snapshot};
-      const saved=id?await request('/characters/'+id,{method:'PUT',body:JSON.stringify(payload)}):await request('/characters',{method:'POST',body:JSON.stringify(payload)});
-      setActiveSlot(saved.id);cloudStatus('Ficha salva na nuvem com sucesso.','ok');showToast?.('Ficha salva na nuvem');v30CloudList();
-    }catch(e){cloudStatus(e.message,'err');showToast?.('Erro ao salvar na nuvem');}
+      await cloudSaveSnapshot();
+      cloudStatus('Ficha salva na nuvem com sucesso.','ok');
+      v30CloudList();
+    }catch(e){cloudStatus(e.message,'err');}
   };
   window.v30CloudNewSlot=async function(){
     try{localStorage.removeItem(SLOT_KEY);await v30CloudSave();}catch(e){cloudStatus(e.message,'err');}
@@ -6338,26 +6355,27 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   setInterval(function(){const api=apiBase();if(!api)return;fetch(api+'/health').catch(()=>{});},14*60*1000);
 
   // ── AUTO-SAVE NA NUVEM quando logado ──
-  // Intercepta o saveData existente e dispara cloud save com debounce de 8s
+  // Debounce de 10s após qualquer saveData, sem recursão
   let cloudSaveTimer=null;
+  let _cloudSaving=false;
   const _origSave=window.saveData;
   window.saveData=function(){
+    if(_cloudSaving) return; // evita loop se saveData for chamado durante auto-save
     try{ _origSave?.apply(this,arguments); }catch(e){}
-    if(!getAccountInfo())return;
+    if(!getAccountInfo()) return;
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer=setTimeout(async()=>{
+      if(!getAccountInfo()) return;
+      _cloudSaving=true;
       try{
-        const snapshot=currentSnapshot();
-        const summary=summaryFromSnapshot(snapshot);
-        const id=activeSlot();
-        const payload={name:summary.name,summary,data:snapshot};
-        const saved=id
-          ?await request('/characters/'+id,{method:'PUT',body:JSON.stringify(payload)})
-          :await request('/characters',{method:'POST',body:JSON.stringify(payload)});
-        setActiveSlot(saved.id);
-        cloudStatus('Salvo na nuvem automaticamente.','ok');
-      }catch(e){ cloudStatus('Auto-save falhou: '+e.message,'err'); }
-    },8000);
+        await cloudSaveSnapshot();
+        cloudStatus('Salvo automaticamente na nuvem.','ok');
+      }catch(e){
+        cloudStatus('Auto-save falhou: '+e.message,'err');
+      }finally{
+        _cloudSaving=false;
+      }
+    },10000);
   };
 
   // ── PDF / IMPRESSÃO ──
@@ -6370,11 +6388,25 @@ setTimeout(()=>{v18EnsureState();v18BindRegressionWatcher();},120);
   window.renderAccountBar = renderAccountBar;
   window.apiBase = apiBase;
 
-  // Init — aguarda DOM e já tenta listar se logado
+  // Init — valida slot ativo e carrega lista se logado
   renderAccountBar();
-  if(getAccountInfo()){
-    setTimeout(()=>v30CloudList().catch(()=>{}),1200);
-  }
+  (async function init(){
+    const id=activeSlot();
+    if(id && getAccountInfo()){
+      // Verifica se o slot ainda existe; limpa se não
+      try{
+        await request('/characters/'+id);
+      }catch(e){
+        if(e.message.includes('não encontrado')||e.message.includes('404')||e.message.includes('Not Found')){
+          localStorage.removeItem(SLOT_KEY);
+          cloudStatus('Slot anterior não encontrado. Salve para criar um novo.','');
+        }
+      }
+    }
+    if(getAccountInfo()){
+      setTimeout(()=>v30CloudList().catch(()=>{}),1500);
+    }
+  })();
 })();
 
 (function(){
