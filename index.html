@@ -1935,7 +1935,78 @@ textarea:focus{
 .v30-cloud-item-del{background:none;border:1px solid rgba(192,57,43,.4);border-radius:8px;color:#c0392b;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer}
 .v30-cloud-item-del:hover{background:rgba(192,57,43,.1)}
 /* ===== PRINT / PDF ===== */
-@media print{
+
+  
+<style>
+/* ── Status Conditions com Rounds ── */
+.cond-tracker{background:linear-gradient(180deg,#fffaf1,#f2e2c5);border:1px solid rgba(168,115,31,.38);border-radius:18px;padding:12px;margin-bottom:10px;box-shadow:0 9px 22px rgba(72,45,14,.08)}
+.cond-tracker-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.cond-tracker-title{font-family:'Cinzel',serif;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.65px;color:#17120d}
+.cond-active-list{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;margin-bottom:8px}
+.cond-pill{display:inline-flex;align-items:center;gap:5px;background:#15110d;color:#fff8ec;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:900;cursor:pointer;transition:.16s ease;user-select:none}
+.cond-pill:hover{background:#3a2610}
+.cond-pill .cond-rounds{background:rgba(255,248,236,.18);border-radius:999px;padding:1px 6px;font-size:10px;margin-left:2px}
+.cond-pill .cond-del{opacity:.6;margin-left:4px;font-size:13px;line-height:1}
+.cond-pill:hover .cond-del{opacity:1}
+.cond-add-row{display:flex;gap:6px;align-items:flex-end}
+.cond-select{flex:1;min-height:36px;border-radius:12px}
+.cond-rounds-input{width:62px;min-height:36px;border-radius:12px;text-align:center}
+.cond-note{font-size:10px;color:#7a664d;margin-top:6px;line-height:1.4}
+
+/* ── Death Saves (visual melhorado) ── */
+.ds-row{display:flex;gap:6px;align-items:center;margin-top:4px}
+.ds-dot{width:22px;height:22px;border-radius:50%;border:2px solid;cursor:pointer;transition:all .2s;flex-shrink:0}
+.ds-dot-s{border-color:#2f6f37;background:#fffdf8}
+.ds-dot-s.on{background:#2f6f37;box-shadow:0 0 0 3px rgba(47,111,55,.15)}
+.ds-dot-f{border-color:#772828;background:#fffdf8}
+.ds-dot-f.on{background:#772828;box-shadow:0 0 0 3px rgba(119,40,40,.15)}
+.ds-stable{font-size:11px;font-weight:900;padding:4px 10px;border-radius:999px;text-align:center;margin-top:6px}
+.ds-stable.alive{background:#dcefd6;color:#2f6f37;border:1px solid #9ec68b}
+.ds-stable.dead{background:#f0d5d2;color:#772828;border:1px solid #c98d85}
+.ds-stable.rolling{background:#f6e4bd;color:#6d430d;border:1px solid #c49235}
+
+/* ── Concentration Indicator ── */
+.conc-banner{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,rgba(104,64,131,.12),transparent);border:1px solid rgba(104,64,131,.28);border-radius:14px;padding:8px 12px;margin-bottom:8px;animation:concPulse 2s ease infinite}
+.conc-banner.hidden{display:none}
+@keyframes concPulse{0%,100%{border-color:rgba(104,64,131,.28)}50%{border-color:rgba(104,64,131,.55)}}
+.conc-icon{width:18px;height:18px;border-radius:50%;border:2px solid #684083;background:#fffdf8;flex-shrink:0}
+.conc-text{font-size:12px;font-weight:900;color:#684083;flex:1}
+.conc-spell{font-size:11px;color:#7a664d;margin-left:4px;font-weight:400}
+.conc-dmg-alert{background:#fffdf8;border:1px solid #c98d85;border-radius:12px;padding:8px 10px;font-size:11px;color:#772828;font-weight:900;margin-top:6px;display:none}
+.conc-dmg-alert.show{display:block}
+
+/* ── Passive Perception strip ── */
+.passive-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.passive-chip{background:linear-gradient(180deg,#fffdf8,#f2e2c5);border:1px solid rgba(168,115,31,.28);border-radius:14px;padding:7px;text-align:center}
+.passive-val{font-size:18px;font-weight:900;color:#15110d;line-height:1}
+.passive-lbl{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.45px;color:#7a664d;margin-top:3px}
+
+/* ── Inspiration toggle ── */
+.inspiration-glow{box-shadow:0 0 0 0 rgba(168,115,31,0);transition:box-shadow .4s ease}
+.inspiration-glow.active{box-shadow:0 0 0 5px rgba(168,115,31,.18);animation:inspGlow 1.6s ease infinite}
+@keyframes inspGlow{0%,100%{box-shadow:0 0 0 4px rgba(168,115,31,.14)}50%{box-shadow:0 0 0 8px rgba(168,115,31,.06)}}
+
+/* ── Encumbrance bar ── */
+.enc-bar-wrap{margin-top:8px}
+.enc-bar-labels{display:flex;justify-content:space-between;font-size:9px;color:#7a664d;font-weight:900;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.enc-bar-track{height:8px;background:#e2c99e;border-radius:4px;overflow:hidden;border:1px solid rgba(168,115,31,.3);position:relative}
+.enc-bar-fill{height:100%;border-radius:4px;transition:width .4s,background .4s}
+.enc-thresholds{display:flex;position:absolute;inset:0}
+.enc-th{position:absolute;top:0;bottom:0;width:1px;background:rgba(21,17,13,.3)}
+.enc-status{font-size:11px;font-weight:900;margin-top:5px;padding:4px 10px;border-radius:999px;display:inline-block}
+.enc-ok{background:#dcefd6;color:#2f6f37;border:1px solid #9ec68b}
+.enc-enc{background:#f6e4bd;color:#6d430d;border:1px solid #c49235}
+.enc-heavy{background:#f0d5d2;color:#772828;border:1px solid #c98d85}
+.enc-over{background:#15110d;color:#fff8ec;border:1px solid #15110d}
+
+/* ── Swipe dots ── */
+.swipe-dots{display:none;justify-content:center;gap:6px;padding:6px 0 10px;position:sticky;bottom:calc(var(--mobile-nav-h) + var(--safe-bottom) + 4px);z-index:50}
+@media(max-width:720px){.swipe-dots{display:flex}}
+.swipe-dot{width:6px;height:6px;border-radius:50%;background:rgba(168,115,31,.3);transition:.2s ease}
+.swipe-dot.active{background:var(--gold);width:18px;border-radius:3px}
+</style>
+
+  @media print{
   .v30-cloud-fab,.v44-backup-fab,.v30-cloud-overlay,.v44-backup-overlay,
   .vauth-overlay,.vconfig-overlay,.app-nav,nav,
   button:not(.print-keep){display:none!important}
@@ -2215,6 +2286,22 @@ textarea:focus{
 
   <!-- DERIVADOS (FICHA VIVA) -->
   <div class="derived-row" id="derived-grid"></div>
+
+<div class="passive-strip" id="passive-strip">
+  <div class="passive-chip">
+    <div class="passive-val" id="passive-perc">—</div>
+    <div class="passive-lbl">Percepção</div>
+  </div>
+  <div class="passive-chip">
+    <div class="passive-val" id="passive-intuit">—</div>
+    <div class="passive-lbl">Intuição</div>
+  </div>
+  <div class="passive-chip">
+    <div class="passive-val" id="passive-invest">—</div>
+    <div class="passive-lbl">Investigação</div>
+  </div>
+</div>
+  
   <div id="eq-effects-strip" style="margin-bottom:8px"></div>
 
   <hr class="div">
@@ -2273,13 +2360,26 @@ textarea:focus{
       <div><label class="fld">Cobre</label><input type="number" id="copper" placeholder="0" min="0" oninput="renderInventory();saveDebounce()"></div>
     </div>
     <div style="margin-top:6px;font-size:11px;color:var(--parch3)" id="total-gp">Total: 0 MO</div>
+    
   </div>
 </div>
 
 <!-- ===== COMBATE ===== -->
 <div id="combate" class="section">
   <div class="page-title"><img class="title-icon" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-shield-icon%20lucide-shield%22%3E%3Cpath%20d%3D%22M20%2013c0%205-3.5%207.5-7.66%208.95a1%201%200%200%201-.67-.01C7.5%2020.5%204%2018%204%2013V6a1%201%200%200%201%201-1c2%200%204.5-1.2%206.24-2.72a1.17%201.17%200%200%201%201.52%200C14.51%203.81%2017%205%2019%205a1%201%200%200%201%201%201z%22/%3E%3C/svg%3E" alt="" aria-hidden="true">Combate</div>
-
+<div class="enc-bar-wrap" id="enc-bar-wrap">
+    <div class="enc-bar-labels">
+      <span>0</span>
+      <span id="enc-th1-lbl">—</span>
+      <span id="enc-th2-lbl">—</span>
+      <span id="enc-max-lbl">— kg</span>
+    </div>
+    <div class="enc-bar-track">
+      <div class="enc-bar-fill" id="enc-bar-fill" style="width:0%"></div>
+      <div class="enc-thresholds" id="enc-thresholds"></div>
+    </div>
+    <span class="enc-status enc-ok" id="enc-status-label">Calculando...</span>
+  </div>
 
   <!-- TURNO INTEGRADO AO COMBATE -->
   <div id="action-economy-engine" class="ae-shell combat-turn-shell"></div>
@@ -2299,16 +2399,120 @@ textarea:focus{
     </div>
     <div id="hp-msg" style="font-size:11px;color:var(--gold);margin-top:6px;text-align:center;min-height:16px"></div>
   </div>
-
-  <!-- MORTE -->
-  <div class="card">
-    <div class="card-title"><img class="ui-icon" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-shield-icon%20lucide-shield%22%3E%3Cpath%20d%3D%22M20%2013c0%205-3.5%207.5-7.66%208.95a1%201%200%200%201-.67-.01C7.5%2020.5%204%2018%204%2013V6a1%201%200%200%201%201-1c2%200%204.5-1.2%206.24-2.72a1.17%201.17%200%200%201%201.52%200C14.51%203.81%2017%205%2019%205a1%201%200%200%201%201%201z%22/%3E%3C/svg%3E" alt="" aria-hidden="true">Testes de Morte</div>
+ <!-- MORTE -->
+  <div class="card" id="death-saves-card">
+    <div class="card-title">
+      <svg class="ui-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+      Testes de Morte
+    </div>
     <div class="g2">
-      <div><label class="fld" style="color:#4caf50">Sucessos</label><div style="display:flex;gap:8px;margin-top:5px"><div class="slot-bub" id="ds0" onclick="toggleDS(0)"></div><div class="slot-bub" id="ds1" onclick="toggleDS(1)"></div><div class="slot-bub" id="ds2" onclick="toggleDS(2)"></div></div></div>
-      <div><label class="fld" style="color:#e74c3c">Falhas</label><div style="display:flex;gap:8px;margin-top:5px"><div class="slot-bub" id="df0" onclick="toggleDF(0)"></div><div class="slot-bub" id="df1" onclick="toggleDF(1)"></div><div class="slot-bub" id="df2" onclick="toggleDF(2)"></div></div></div>
+      <div>
+        <label class="fld" style="color:#2f6f37">Sucessos</label>
+        <div class="ds-row">
+          <div class="ds-dot ds-dot-s" id="ds0" onclick="toggleDS(0)"></div>
+          <div class="ds-dot ds-dot-s" id="ds1" onclick="toggleDS(1)"></div>
+          <div class="ds-dot ds-dot-s" id="ds2" onclick="toggleDS(2)"></div>
+        </div>
+      </div>
+      <div>
+        <label class="fld" style="color:#772828">Falhas</label>
+        <div class="ds-row">
+          <div class="ds-dot ds-dot-f" id="df0" onclick="toggleDF(0)"></div>
+          <div class="ds-dot ds-dot-f" id="df1" onclick="toggleDF(1)"></div>
+          <div class="ds-dot ds-dot-f" id="df2" onclick="toggleDF(2)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ds-stable rolling" id="ds-status">Inconsciente — role testes de morte!</div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn btn-sm btn-ghost" onclick="dsRoll('success')">Rolar Sucesso</button>
+      <button class="btn btn-sm btn-ghost" onclick="dsRoll('fail')">Rolar Falha</button>
+      <button class="btn btn-sm btn-ghost" onclick="dsReset()">Resetar</button>
     </div>
   </div>
 
+  <!-- 
+  Ctrl+F no index.html por: id="ds0"
+  Seleciona do <div class="card"> pai até o </div> que fecha esse card
+  Substitui TUDO pelo bloco abaixo
+-->
+
+  <!-- MORTE -->
+  <div class="card" id="death-saves-card">
+    <div class="card-title">
+      <svg class="ui-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+      Testes de Morte
+    </div>
+    <div class="g2">
+      <div>
+        <label class="fld" style="color:#2f6f37">Sucessos</label>
+        <div class="ds-row">
+          <div class="ds-dot ds-dot-s" id="ds0" onclick="toggleDS(0)"></div>
+          <div class="ds-dot ds-dot-s" id="ds1" onclick="toggleDS(1)"></div>
+          <div class="ds-dot ds-dot-s" id="ds2" onclick="toggleDS(2)"></div>
+        </div>
+      </div>
+      <div>
+        <label class="fld" style="color:#772828">Falhas</label>
+        <div class="ds-row">
+          <div class="ds-dot ds-dot-f" id="df0" onclick="toggleDF(0)"></div>
+          <div class="ds-dot ds-dot-f" id="df1" onclick="toggleDF(1)"></div>
+          <div class="ds-dot ds-dot-f" id="df2" onclick="toggleDF(2)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ds-stable rolling" id="ds-status">Inconsciente — role testes de morte!</div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn btn-sm btn-ghost" onclick="dsRoll('success')">Rolar Sucesso</button>
+      <button class="btn btn-sm btn-ghost" onclick="dsRoll('fail')">Rolar Falha</button>
+      <button class="btn btn-sm btn-ghost" onclick="dsReset()">Resetar</button>
+    </div>
+  </div>
+
+  <!-- STATUS CONDITIONS -->
+  <div class="cond-tracker" id="status-conditions-tracker">
+    <div class="cond-tracker-head">
+      <div class="cond-tracker-title">Condições ativas</div>
+      <button class="turn-reset-ghost" type="button" onclick="condEndTurn()">Fim do turno</button>
+    </div>
+    <div class="conc-banner hidden" id="conc-banner">
+      <div class="conc-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M25.527 17.635c0 5.828-4.707 10.552-10.513 10.552C9.207 28.187 4.5 23.462 4.5 17.635c0-5.828 4.707-10.552 10.514-10.552c5.806 0 10.513 4.724 10.513 10.552"/><path d="M43.5 24.096c0 9.29-7.504 16.821-16.76 16.821S9.98 33.386 9.98 24.095c0-9.29 7.503-16.821 16.76-16.821c9.256 0 16.76 7.531 16.76 16.821"/></svg>
+      </div>
+      <div class="conc-text">Concentração ativa<span class="conc-spell" id="conc-spell-name"></span></div>
+      <button class="turn-reset-ghost" type="button" onclick="concClear()">Remover</button>
+    </div>
+    <div class="cond-active-list" id="cond-active-list">
+      <span style="font-size:11px;color:#9a8060;align-self:center">Nenhuma condição ativa</span>
+    </div>
+    <div class="cond-add-row">
+      <select class="cond-select" id="cond-select-new">
+        <option value="">+ Adicionar condição</option>
+        <option>Agarrado</option>
+        <option>Amedrontado</option>
+        <option>Atordoado</option>
+        <option>Caído</option>
+        <option>Cego</option>
+        <option>Contido</option>
+        <option>Enfeitiçado</option>
+        <option>Envenenado</option>
+        <option>Exausto</option>
+        <option>Incapacitado</option>
+        <option>Inconsciente</option>
+        <option>Invisível</option>
+        <option>Paralisado</option>
+        <option>Petrificado</option>
+        <option>Surdo</option>
+        <option>──────</option>
+        <option>Vantagem (custom)</option>
+        <option>Desvantagem (custom)</option>
+        <option>Resistência (custom)</option>
+      </select>
+      <input class="cond-rounds-input" id="cond-rounds-new" type="number" min="1" max="99" value="3" placeholder="Rounds">
+      <button class="btn btn-sm btn-gold" type="button" onclick="condAdd()">+</button>
+    </div>
+    <div class="cond-note">Fim do turno decrementa 1 round de cada condição e remove as que chegarem a zero.</div>
+  </div>
   <!-- MESTRE, O QUE EU JOGO? -->
   <div class="card wtr-card" style="margin-top:10px">
     <div class="card-title"><img class="ui-icon" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%2021a9%209%200%201%200%200-18%209%209%200%200%200%200%2018Z%22/%3E%3Cpath%20d%3D%22M9.09%209a3%203%200%201%201%205.82%201c0%202-3%202-3%204%22/%3E%3Cpath%20d%3D%22M12%2017h.01%22/%3E%3C/svg%3E" alt="" aria-hidden="true">Mestre, o que eu jogo?</div>
@@ -5106,6 +5310,551 @@ if (typeof renderActionEconomy === 'function') renderActionEconomy();
 if (typeof v16Init === 'function') v16Init();
 
 
+──────────────────────
+var condState = [];
+
+function condAdd() {
+  const sel = document.getElementById('cond-select-new');
+  const rInput = document.getElementById('cond-rounds-new');
+  const name = (sel?.value || '').trim();
+  const rounds = Math.max(1, parseInt(rInput?.value) || 3);
+  if (!name || name === '──────') return;
+  if (condState.find(c => c.name === name)) {
+    showToast?.('Condição já ativa: ' + name);
+    return;
+  }
+  condState.push({ name, rounds });
+  sel.value = '';
+  condRender();
+  saveDebounce?.();
+  showToast?.('Condição adicionada: ' + name + ' (' + rounds + ' rounds)');
+}
+
+function condRemove(name) {
+  condState = condState.filter(c => c.name !== name);
+  condRender();
+  saveDebounce?.();
+}
+
+function condEndTurn() {
+  const removed = [];
+  condState = condState.map(c => ({ ...c, rounds: c.rounds - 1 })).filter(c => {
+    if (c.rounds <= 0) { removed.push(c.name); return false; }
+    return true;
+  });
+  condRender();
+  saveDebounce?.();
+  if (removed.length) showToast?.('Removido: ' + removed.join(', '));
+  else showToast?.('Fim do turno — condições decrementadas');
+}
+
+function condRender() {
+  const el = document.getElementById('cond-active-list');
+  if (!el) return;
+  if (!condState.length) {
+    el.innerHTML = '<span style="font-size:11px;color:#9a8060;align-self:center">Nenhuma condição ativa</span>';
+    return;
+  }
+  el.innerHTML = condState.map(c => `
+    <span class="cond-pill" title="Clique para remover" onclick="condRemove('${c.name.replace(/'/g, "\\'")}')">
+      ${c.name}
+      <span class="cond-rounds">${c.rounds}r</span>
+      <span class="cond-del">×</span>
+    </span>`).join('');
+}
+
+// ── 2. DEATH SAVES ───────────────────────────────────────
+function renderDeathSaves() {
+  [0, 1, 2].forEach(i => {
+    const ds = document.getElementById('ds' + i);
+    if (ds) ds.classList.toggle('on', !!dsState[i]);
+    const df = document.getElementById('df' + i);
+    if (df) df.classList.toggle('on', !!dfState[i]);
+  });
+  const successes = dsState.filter(Boolean).length;
+  const failures = dfState.filter(Boolean).length;
+  const statusEl = document.getElementById('ds-status');
+  if (!statusEl) return;
+  if (successes >= 3) {
+    statusEl.textContent = 'Estabilizado!';
+    statusEl.className = 'ds-stable alive';
+  } else if (failures >= 3) {
+    statusEl.textContent = 'Personagem morreu';
+    statusEl.className = 'ds-stable dead';
+  } else {
+    statusEl.textContent = successes + '/3 sucessos · ' + failures + '/3 falhas';
+    statusEl.className = 'ds-stable rolling';
+  }
+}
+
+function dsRoll(type) {
+  const roll = Math.ceil(Math.random() * 20);
+  const crit = roll === 20;
+  const fumble = roll === 1;
+  if (crit) {
+    dsState[dsState.indexOf(false) !== -1 ? dsState.indexOf(false) : 0] = true;
+    const next = dsState.indexOf(false);
+    if (next !== -1) dsState[next] = true;
+  } else if (fumble) {
+    dfState[dfState.indexOf(false) !== -1 ? dfState.indexOf(false) : 0] = true;
+    const next = dfState.indexOf(false);
+    if (next !== -1) dfState[next] = true;
+  } else if (roll >= 10) {
+    const idx = dsState.indexOf(false);
+    if (idx >= 0) dsState[idx] = true;
+  } else {
+    const idx = dfState.indexOf(false);
+    if (idx >= 0) dfState[idx] = true;
+  }
+  renderDeathSaves();
+  saveDebounce?.();
+  showToast?.('Death save: ' + roll + (crit ? ' CRITICO (2 sucessos)!' : fumble ? ' FUMBLE (2 falhas)!' : roll >= 10 ? ' Sucesso' : ' Falha'));
+}
+
+function dsReset() {
+  dsState = [false, false, false];
+  dfState = [false, false, false];
+  renderDeathSaves();
+  saveDebounce?.();
+  showToast?.('Testes de morte resetados');
+}
+
+// ── 3. CONCENTRAÇÃO ──────────────────────────────────────
+var concSpell = '';
+
+function concSet(spellName) {
+  concSpell = spellName || '';
+  concRender();
+  saveDebounce?.();
+}
+
+function concClear() {
+  concSpell = '';
+  concRender();
+  saveDebounce?.();
+  showToast?.('Concentração removida');
+}
+
+function concRender() {
+  const banner = document.getElementById('conc-banner');
+  const nameEl = document.getElementById('conc-spell-name');
+  if (!banner) return;
+  if (concSpell) {
+    banner.classList.remove('hidden');
+    if (nameEl) nameEl.textContent = ': ' + concSpell;
+    if (typeof v16State !== 'undefined') { v16State.concentration = true; try { v16Save?.(); } catch(e){} }
+  } else {
+    banner.classList.add('hidden');
+    if (nameEl) nameEl.textContent = '';
+    if (typeof v16State !== 'undefined') { v16State.concentration = false; try { v16Save?.(); } catch(e){} }
+  }
+  const ct = document.getElementById('concentration-toggle');
+  if (ct) ct.classList.toggle('gold', !!concSpell);
+}
+
+function concCheckOnDamage() {
+  if (!concSpell) return;
+  const alert = document.getElementById('conc-dmg-alert') || createConcAlert();
+  if (!alert) return;
+  const hpAtual = parseInt(document.getElementById('hp-atual')?.value) || 0;
+  const hpMax = parseInt(document.getElementById('hp-max')?.value) || 1;
+  if (hpAtual < hpMax) {
+    const lastHp = parseInt(alert.dataset.lastHp || hpMax);
+    const dmg = lastHp - hpAtual;
+    if (dmg > 0) {
+      const dc = Math.max(10, Math.floor(dmg / 2));
+      const SVG_WARN = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12.5 8.752a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0Z"/><circle cx="11.999" cy="16.736" r=".5" fill="currentColor"/><path d="M18.642 20.934H5.385a2.5 2.5 0 0 1-2.222-3.644L9.792 4.421a2.5 2.5 0 0 1 4.444 0l6.629 12.869a2.5 2.5 0 0 1-2.223 3.644"/></svg>`;
+      alert.innerHTML = SVG_WARN + ' Você recebeu ' + dmg + ' de dano! Role Constituição CD ' + dc + ' para manter concentração em <strong>' + concSpell + '</strong>.';
+      alert.classList.add('show');
+      setTimeout(() => alert.classList.remove('show'), 5000);
+    }
+    alert.dataset.lastHp = hpAtual;
+  }
+}
+
+function createConcAlert() {
+  const tracker = document.getElementById('status-conditions-tracker');
+  if (!tracker) return null;
+  const el = document.createElement('div');
+  el.id = 'conc-dmg-alert';
+  el.className = 'conc-dmg-alert';
+  tracker.insertBefore(el, tracker.querySelector('.cond-add-row'));
+  return el;
+}
+
+const _origUpdateHpBar = window.updateHpBar || (typeof updateHpBar === 'function' ? updateHpBar : null);
+window.updateHpBar = function() {
+  if (_origUpdateHpBar) _origUpdateHpBar.apply(this, arguments);
+  try { concCheckOnDamage(); } catch(e) {}
+};
+
+// ── 4. PASSIVE PERCEPTION ────────────────────────────────
+function renderPassivePerception() {
+  const prof = getProf ? getProf() : 2;
+  const skillsMap = { 'Percepção': 'sab', 'Intuição': 'sab', 'Investigação': 'int' };
+  const ids = ['passive-perc', 'passive-intuit', 'passive-invest'];
+  const skillNames = ['Percepção', 'Intuição', 'Investigação'];
+  skillNames.forEach((sname, i) => {
+    const attr = skillsMap[sname];
+    const mod = getModWithItems ? getModWithItems(attr) : getMod(parseInt(document.getElementById('attr-' + attr)?.value) || 10);
+    const skillIdx = SKILLS ? SKILLS.findIndex(s => s.n === sname) : -1;
+    const hasProficiency = skillIdx >= 0 && (typeof hasSkillProf === 'function' ? hasSkillProf(skillIdx) : false);
+    const hasExpertise = skillIdx >= 0 && (typeof expState !== 'undefined' ? !!expState[skillIdx] : false);
+    const itemBonus = (typeof itemSkillBonuses !== 'undefined' ? itemSkillBonuses[sname] : 0) || 0;
+    const passive = 10 + mod + (hasExpertise ? prof * 2 : hasProficiency ? prof : 0) + itemBonus;
+    const el = document.getElementById(ids[i]);
+    if (el) el.textContent = passive;
+  });
+}
+
+// ── 5. INSPIRAÇÃO GLOW ───────────────────────────────────
+function renderInspirationGlow() {
+  const box = document.querySelector('.der-box.inspiration-box');
+  if (!box) return;
+  const val = parseInt(document.getElementById('pinspiration')?.value) || 0;
+  box.classList.toggle('inspiration-glow', val > 0);
+  box.classList.toggle('active', val > 0);
+}
+
+// ── 6. ENCUMBRANCE ───────────────────────────────────────
+function getTotalWeight() {
+  if (typeof inventory === 'undefined') return 0;
+  return inventory.reduce((sum, it) => {
+    const w = parseFloat(it.peso || it.weight || 0);
+    const qty = parseInt(it.quantidade || it.qty || 1);
+    return sum + (w * qty);
+  }, 0);
+}
+
+function renderEncumbrance() {
+  const strScore = parseInt(document.getElementById('attr-for')?.value) || 10;
+  const originBonus = typeof getOriginBonus === 'function' ? getOriginBonus('for') : 0;
+  const str = strScore + originBonus;
+  const enc1 = str * 5;
+  const enc2 = str * 10;
+  const max = str * 15;
+  const current = getTotalWeight();
+  const pct = Math.min(100, (current / max) * 100);
+
+  const fill = document.getElementById('enc-bar-fill');
+  const statusLbl = document.getElementById('enc-status-label');
+  const th1 = document.getElementById('enc-th1-lbl');
+  const th2 = document.getElementById('enc-th2-lbl');
+  const maxLbl = document.getElementById('enc-max-lbl');
+  const thresholds = document.getElementById('enc-thresholds');
+
+  if (th1) th1.textContent = enc1 + ' kg';
+  if (th2) th2.textContent = enc2 + ' kg';
+  if (maxLbl) maxLbl.textContent = max + ' kg';
+  if (thresholds) thresholds.innerHTML = `
+    <div class="enc-th" style="left:${(enc1/max)*100}%"></div>
+    <div class="enc-th" style="left:${(enc2/max)*100}%"></div>`;
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.style.background = current > enc2 ? '#772828' : current > enc1 ? '#c49235' : '#2f6f37';
+  }
+  if (statusLbl) {
+    let msg = '', cls = '';
+    if (current === 0)       { msg = 'Sem peso calculado — adicione kg nos itens'; cls = 'enc-ok'; }
+    else if (current > max)  { msg = 'Sobrecarga! ' + current.toFixed(1) + '/' + max + ' kg'; cls = 'enc-over'; }
+    else if (current > enc2) { msg = 'Muito pesado — vel. -20m, desvant. ataques/saves (' + current.toFixed(1) + '/' + max + ' kg)'; cls = 'enc-heavy'; }
+    else if (current > enc1) { msg = 'Encumbered — vel. -10m (' + current.toFixed(1) + '/' + max + ' kg)'; cls = 'enc-enc'; }
+    else                     { msg = 'Normal — ' + current.toFixed(1) + '/' + max + ' kg'; cls = 'enc-ok'; }
+    statusLbl.textContent = msg;
+    statusLbl.className = 'enc-status ' + cls;
+  }
+}
+
+// ── Hook calcAll ─────────────────────────────────────────
+const _origCalcAllP1 = window.calcAll || (typeof calcAll === 'function' ? calcAll : null);
+window.calcAll = function() {
+  if (_origCalcAllP1) _origCalcAllP1.apply(this, arguments);
+  try { renderPassivePerception(); } catch(e) {}
+  try { renderInspirationGlow(); } catch(e) {}
+  try { renderEncumbrance(); } catch(e) {}
+};
+
+// ── 7. SWIPE MOBILE ──────────────────────────────────────
+(function initSwipe() {
+  const NAV_ORDER = ['home','ficha','equip','combate','descanso','condicoes','levelup','magias','lore','dados','notas'];
+  let touchStartX = 0, touchStartY = 0, swipeLocked = false;
+
+  function currentIdx() {
+    const active = document.querySelector('.section.active');
+    return active ? NAV_ORDER.indexOf(active.id) : 0;
+  }
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= NAV_ORDER.length) return;
+    const id = NAV_ORDER[idx];
+    const btn = [...document.querySelectorAll('.nav-btn')].find(b => (b.getAttribute('onclick') || '').includes("'" + id + "'"));
+    if (typeof nav === 'function') nav(id, btn);
+    renderSwipeDots(idx);
+  }
+
+  function renderSwipeDots(activeIdx) {
+    const el = document.getElementById('swipe-dots');
+    if (!el) return;
+    el.innerHTML = NAV_ORDER.map((_, i) =>
+      `<div class="swipe-dot ${i === activeIdx ? 'active' : ''}" onclick="swipeGoTo(${i})"></div>`
+    ).join('');
+  }
+  window.swipeGoTo = function(i) { goTo(i); };
+
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    swipeLocked = false;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (swipeLocked) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (['input','select','textarea'].includes(tag)) return;
+    if (e.target.closest('.app-nav,.modal,.ae-modal,.v30-cloud-sheet,.v44-backup-sheet')) return;
+    swipeLocked = true;
+    goTo(currentIdx() + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  const _origNavSwipe = window.nav;
+  if (typeof _origNavSwipe === 'function') {
+    window.nav = function(id, btn) {
+      const r = _origNavSwipe.apply(this, arguments);
+      renderSwipeDots(NAV_ORDER.indexOf(id));
+      return r;
+    };
+  }
+
+  renderSwipeDots(0);
+})();
+
+// ── SAVE / LOAD extras ───────────────────────────────────
+const _origSaveDataP1 = window.saveData;
+window.saveData = function() {
+  const r = _origSaveDataP1 ? _origSaveDataP1.apply(this, arguments) : undefined;
+  try { localStorage.setItem('dnd_p1_extras', JSON.stringify({ condState, concSpell })); } catch(e) {}
+  return r;
+};
+
+function p1LoadExtras() {
+  try {
+    const raw = localStorage.getItem('dnd_p1_extras');
+    if (!raw) return;
+    const extra = JSON.parse(raw);
+    if (Array.isArray(extra.condState)) { condState = extra.condState; condRender(); }
+    if (extra.concSpell) { concSpell = extra.concSpell; concRender(); }
+  } catch(e) {}
+}
+
+const _origRestoreP1 = window.v30RestoreSnapshot;
+window.v30RestoreSnapshot = function(snap) {
+  const r = _origRestoreP1 ? _origRestoreP1.apply(this, arguments) : undefined;
+  try { p1LoadExtras(); } catch(e) {}
+  try { renderPassivePerception(); } catch(e) {}
+  try { renderEncumbrance(); } catch(e) {}
+  try { condRender(); } catch(e) {}
+  return r;
+};
+
+const _origV16ClearConcP1 = window.v16ClearConcentration;
+window.v16ClearConcentration = function() {
+  if (_origV16ClearConcP1) _origV16ClearConcP1.apply(this, arguments);
+  concClear();
+};
+
+document.addEventListener('input', function(e) {
+  if (e.target?.id === 'pinspiration') renderInspirationGlow();
+});
+
+setTimeout(function() {
+  try { p1LoadExtras(); } catch(e) {}
+  try { condRender(); } catch(e) {}
+  try { concRender(); } catch(e) {}
+  try { renderPassivePerception(); } catch(e) {}
+  try { renderInspirationGlow(); } catch(e) {}
+  try { renderEncumbrance(); } catch(e) {}
+  try { renderDeathSaves(); } catch(e) {}
+}, 300);
+
+// ══════════════════════════════════════════════════════════
+// CONCENTRAÇÃO — Integração nas Magias
+// ══════════════════════════════════════════════════════════
+
+const SVG_CONC = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M25.527 17.635c0 5.828-4.707 10.552-10.513 10.552C9.207 28.187 4.5 23.462 4.5 17.635c0-5.828 4.707-10.552 10.514-10.552c5.806 0 10.513 4.724 10.513 10.552"/><path d="M43.5 24.096c0 9.29-7.504 16.821-16.76 16.821S9.98 33.386 9.98 24.095c0-9.29 7.503-16.821 16.76-16.821c9.256 0 16.76 7.531 16.76 16.821"/></svg>`;
+const SVG_CHECK = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m10.586 13.414-2.829-2.828L6.343 12l4.243 4.243 7.07-7.071-1.413-1.415z"/></svg>`;
+const SVG_X = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;flex-shrink:0"><path d="M6.225 4.811a1 1 0 0 0-1.414 1.414L10.586 12 4.81 17.775a1 1 0 1 0 1.414 1.414L12 13.414l5.775 5.775a1 1 0 0 0 1.414-1.414L13.414 12l5.775-5.775a1 1 0 0 0-1.414-1.414L12 10.586z"/></svg>`;
+
+const _origRenderSpellBank = window.renderSpellBank || (typeof renderSpellBank === 'function' ? renderSpellBank : null);
+window.renderSpellBank = function() {
+  if (_origRenderSpellBank) _origRenderSpellBank.apply(this, arguments);
+  _injectConcButtons();
+};
+
+const _origRenderMySpells = window.renderMySpells || (typeof renderMySpells === 'function' ? renderMySpells : null);
+window.renderMySpells = function() {
+  if (_origRenderMySpells) _origRenderMySpells.apply(this, arguments);
+  _injectConcMySpellsButtons();
+};
+
+function _injectConcButtons() {
+  if (typeof SPELL_BANK_DATA === 'undefined') return;
+  SPELL_BANK_DATA.forEach(sp => {
+    if (!sp.conc) return;
+    const safeId = 'sd-' + sp.n.replace(/\s/g, '_');
+    const el = document.getElementById(safeId);
+    if (!el || el.querySelector('.conc-cast-btn')) return;
+    const isActive = typeof concSpell !== 'undefined' && concSpell === sp.n;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm ' + (isActive ? 'btn-gold' : 'btn-ghost') + ' conc-cast-btn';
+    btn.style.marginTop = '6px';
+    btn.innerHTML = isActive ? SVG_CHECK + ' Concentrado' : SVG_CONC + ' Concentrar';
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      if (typeof concSpell !== 'undefined' && concSpell === sp.n) {
+        concClear();
+      } else {
+        if (typeof concSpell !== 'undefined' && concSpell) {
+          if (!confirm('Já concentrado em "' + concSpell + '". Substituir por "' + sp.n + '"?')) return;
+        }
+        concSet(sp.n);
+        showToast?.('Concentrando em ' + sp.n);
+        setTimeout(() => { try { navById?.('combate'); } catch(e) {} }, 800);
+      }
+      _injectConcButtons();
+      _injectConcMySpellsButtons();
+      renderConcMagiasBadge();
+    };
+    el.appendChild(btn);
+  });
+}
+
+function _injectConcMySpellsButtons() {
+  if (typeof spells === 'undefined') return;
+  const allCards = document.querySelectorAll('#spell-list .spell-card');
+  spells.forEach((sp, i) => {
+    if (!sp.conc) return;
+    const card = allCards[i];
+    if (!card || card.querySelector('.conc-cast-btn')) return;
+    const isActive = typeof concSpell !== 'undefined' && concSpell === sp.name;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-xs ' + (isActive ? 'btn-gold' : 'btn-ghost') + ' conc-cast-btn';
+    btn.style.marginTop = '6px';
+    btn.innerHTML = isActive ? SVG_CHECK + ' Concentrado' : SVG_CONC + ' Concentrar';
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      if (typeof concSpell !== 'undefined' && concSpell === sp.name) {
+        concClear();
+      } else {
+        if (typeof concSpell !== 'undefined' && concSpell) {
+          if (!confirm('Substituir concentração em "' + concSpell + '" por "' + sp.name + '"?')) return;
+        }
+        concSet(sp.name);
+        showToast?.('Concentrando em ' + sp.name);
+      }
+      _injectConcButtons();
+      _injectConcMySpellsButtons();
+      renderConcMagiasBadge();
+    };
+    const actionRow = card.querySelector('div[style*="margin-top"]');
+    if (actionRow) actionRow.appendChild(btn);
+    else card.appendChild(btn);
+  });
+}
+
+function renderConcMagiasBadge() {
+  const header = document.querySelector('#magias .page-title');
+  if (!header) return;
+  let badge = document.getElementById('conc-magias-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'conc-magias-badge';
+    badge.className = 'badge badge-purple';
+    badge.style.cssText = 'margin-left:8px;vertical-align:middle;cursor:pointer;display:none;gap:4px;align-items:center;animation:concPulse 2s ease infinite';
+    badge.title = 'Clique para remover concentração';
+    badge.onclick = function() {
+      if (confirm('Remover concentração em "' + concSpell + '"?')) concClear();
+    };
+    header.appendChild(badge);
+  }
+  if (typeof concSpell !== 'undefined' && concSpell) {
+    badge.style.display = 'inline-flex';
+    badge.innerHTML = SVG_CONC + ' ' + concSpell + ' ' + SVG_X;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+const _origConcRender = window.concRender;
+window.concRender = function() {
+  if (_origConcRender) _origConcRender.apply(this, arguments);
+  try { renderConcMagiasBadge(); } catch(e) {}
+  try { _injectConcButtons(); } catch(e) {}
+  try { _injectConcMySpellsButtons(); } catch(e) {}
+};
+
+  // ── Reatualiza ao navegar para Magias ──
+const _origNavConc = window.nav;
+if (typeof _origNavConc === 'function') {
+  window.nav = function(id, btn) {
+    const r = _origNavConc.apply(this, arguments);
+    if (id === 'magias') {
+      setTimeout(() => {
+        try { _injectConcButtons(); } catch(e) {}
+        try { _injectConcMySpellsButtons(); } catch(e) {}
+        try { renderConcMagiasBadge(); } catch(e) {}
+      }, 60);
+    }
+    return r;
+  };
+}
+
+// ── CSS: dot pulsante no botão ativo ──
+(function() {
+  const style = document.createElement('style');
+  style.textContent = `
+    #conc-magias-badge { gap: 4px; }
+    .conc-cast-btn.btn-gold::after {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,248,236,.7);
+      margin-left: 5px;
+      animation: concDot 1.4s ease infinite;
+      vertical-align: 1px;
+    }
+    @keyframes concDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .3; transform: scale(.6); }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// ── Marca spells do banco que têm concentração ──
+(function markConcSpells() {
+  if (typeof SPELL_BANK_DATA === 'undefined') return;
+  const KNOWN_CONC = [
+    'Invisibilidade','Detectar Magia','Teia','Escuridão','Voo','Contrafeitiço'
+  ];
+  SPELL_BANK_DATA.forEach(sp => {
+    if (!sp.conc && KNOWN_CONC.includes(sp.n)) sp.conc = true;
+  });
+})();
+
+// ── Init ──
+setTimeout(function() {
+  try { renderConcMagiasBadge(); } catch(e) {}
+  try { _injectConcButtons(); } catch(e) {}
+  try { _injectConcMySpellsButtons(); } catch(e) {}
+}, 400);
+
+
+ 
 // ===================== v17 — LEVEL UP BLOQUEADO POR AUMENTO NA FICHA =====================
 const V17_LEVEL_LOCK_KEY = 'dnd_v17_levelup_lock_state_v1';
 let v17LevelLock = { unlocked:false, from:null, to:null, reason:'' };
@@ -7293,6 +8042,6 @@ Pendências para a próxima sessão:
   };
 })();
 </script>
-
+<div class="swipe-dots" id="swipe-dots"></div>
 </body>
 </html>
