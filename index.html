@@ -8963,5 +8963,52 @@ Pendências para a próxima sessão:
 })();
 </script>
 
+
+<script>
+/* ============================================================
+   v63 — TOTAL DO ATRIBUTO VISÍVEL
+   - Quando há bônus (raça + itens), mostra o valor FINAL no box
+     (ex: base 15 +2 = 17), sem mexer no input editável (base).
+   - Aditivo: wrap de calcAll, atualiza a linha .stat-attr.
+   ============================================================ */
+(function(){
+  if (window.__v63AttrTotal) return;
+  window.__v63AttrTotal = true;
+
+  function attrList(){ try { return (typeof ATTRS !== 'undefined' && Array.isArray(ATTRS)) ? ATTRS : ['for','des','con','int','sab','car']; } catch(e){ return ['for','des','con','int','sab','car']; } }
+  function fullName(a){ try { return (typeof AF !== 'undefined' && AF[a]) ? AF[a] : String(a).toUpperCase(); } catch(e){ return String(a).toUpperCase(); } }
+
+  function update(){
+    attrList().forEach(function(a){
+      var modEl = document.getElementById('mod-'+a); if (!modEl) return;
+      var sa = modEl.nextElementSibling;
+      if (!sa || !sa.classList || !sa.classList.contains('stat-attr')) return;
+      var inp = document.getElementById('attr-'+a);
+      var base = inp ? (parseInt(inp.value)||0) : (window.getAttr ? window.getAttr(a) : 0);
+      var total = window.getAttrWithItems ? window.getAttrWithItems(a) : base;
+      if (total !== base){
+        var diff = total - base;
+        sa.innerHTML = '<b style="color:var(--gold2,#7b4f13);font-size:13px">'+total+'</b> <span style="opacity:.7">('+base+' '+(diff>=0?'+':'')+diff+')</span>';
+      } else {
+        sa.textContent = fullName(a);
+      }
+    });
+  }
+
+  window.v63AttrTotalHealthCheck = function(){
+    var r = { wrapped:!!window.__v63_calc };
+    attrList().forEach(function(a){ if (window.getAttrWithItems) r[a] = window.getAttrWithItems(a); });
+    console.table(r); return r;
+  };
+
+  var _calc = window.calcAll;
+  if (typeof _calc === 'function'){
+    window.__v63_calc = true;
+    window.calcAll = function(){ var r = _calc.apply(this, arguments); try { update(); } catch(e){} return r; };
+  }
+  try { update(); } catch(e){}
+})();
+</script>
+
 </body>
 </html>
