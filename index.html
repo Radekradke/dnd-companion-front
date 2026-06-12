@@ -8075,5 +8075,270 @@ Pendências para a próxima sessão:
 })();
 </script>
 
+
+<script>
+/* ============================================================
+   v57 — EXPORT PDF (impressão multi-seção)
+   - O @media print existente só mostra a aba ATIVA; aqui forçamos
+     Ficha + Equipamentos + Combate + Magias juntas no PDF.
+   - Esconde ambient (#v30-motes/#v30-spotlight/.v30-ambient) e seções não usadas.
+   - Wrap aditivo de v32PrintSheet: liga body.v57-printing só durante a impressão.
+   - Re-renderiza tudo antes (v30FullRefresh) pra não imprimir seção vazia.
+   ============================================================ */
+(function(){
+  if (window.__v57PrintPdf) return;
+  window.__v57PrintPdf = true;
+
+  // seções que entram no PDF (em ordem)
+  var KEEP = ['ficha','equip','combate','magias'];
+  // seções que NÃO entram (escondidas mesmo se forem a aba ativa)
+  var DROP = ['home','descanso','condicoes','levelup','lore','dados','notas'];
+
+  function injectStyle(){
+    if (document.getElementById('v57-style')) return;
+    var keepSel = KEEP.map(function(id){ return 'body.v57-printing #' + id; }).join(',');
+    var dropSel = DROP.map(function(id){ return 'body.v57-printing #' + id; }).join(',');
+    var css =
+      '@media print{' +
+        // mostra as 4 seções escolhidas (id+classe vence o ".section:not(.active)!important" existente)
+        keepSel + '{display:block!important}' +
+        // mantém os cards inteiros sem cortar entre páginas
+        'body.v57-printing #ficha .card,body.v57-printing #equip .card,body.v57-printing #combate .card,body.v57-printing #magias .card,' +
+        'body.v57-printing #equip .eq-card{page-break-inside:avoid}' +
+        // esconde seções não usadas (mesmo se ".active")
+        dropSel + '{display:none!important}' +
+        // esconde efeitos decorativos / ambiente
+        'body.v57-printing #v30-motes,body.v57-printing #v30-spotlight,body.v57-printing .v30-ambient{display:none!important}' +
+        // título de cada seção começa em nova página a partir da 2ª (layout limpo)
+        'body.v57-printing #equip,body.v57-printing #combate,body.v57-printing #magias{page-break-before:always}' +
+      '}';
+    var s = document.createElement('style');
+    s.id = 'v57-style';
+    s.textContent = css;
+    document.head.appendChild(s);
+  }
+
+  function startPrint(){
+    try { window.v30FullRefresh && window.v30FullRefresh(); } catch(e){}   // garante seções renderizadas
+    document.body.classList.add('v57-printing');
+  }
+  function endPrint(){ document.body.classList.remove('v57-printing'); }
+
+  // limpa o estado depois que a janela de impressão fecha
+  window.addEventListener('afterprint', endPrint);
+
+  var _print = window.v32PrintSheet;
+  window.v32PrintSheet = function(){
+    startPrint();
+    setTimeout(endPrint, 12000);   // fallback caso 'afterprint' não dispare (alguns navegadores)
+    try {
+      if (typeof _print === 'function') return _print.apply(this, arguments);
+      window.print();
+    } catch(e){ endPrint(); }
+  };
+
+  window.v57PrintHealthCheck = function(){
+    var r = { wrapped:(window.v32PrintSheet !== _print), keepSections:KEEP, style:!!document.getElementById('v57-style'),
+      fullRefresh:typeof window.v30FullRefresh };
+    console.table(r); return r;
+  };
+
+  injectStyle();
+})();
+</script>
+
+
+<script>
+/* ============================================================
+   v58 — QR CODE / COMPARTILHAMENTO READ-ONLY
+   - Botão "Compartilhar (QR)" no painel de backup (v44)
+   - POST /characters/:id/share -> shareToken ; gera QR + link
+   - URL ?share=TOKEN abre a ficha em modo SOMENTE LEITURA:
+     restaura snapshot, bloqueia edição/salvamento, limita a nav
+   - Backend: precisa do deploy com as rotas /share (dnd-companion-api)
+   ============================================================ */
+(function(){
+  if (window.__v58Share) return;
+  window.__v58Share = true;
+
+  var TOKEN_KEY  = 'dnd_cloud_auth_token_v31';
+  var SLOT_KEY   = 'dnd_cloud_active_slot_v30';
+  var DEVICE_KEY = 'dnd_cloud_device_v30';
+  var QR_LIB     = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  var ALLOW_NAV  = ['home','ficha','equip','combate'];   // abas visíveis no modo leitura
+
+  function lsGet(k){ try{ var v=localStorage.getItem(k); if(v!==null) return v; }catch(e){} try{ return sessionStorage.getItem(k); }catch(e){} return null; }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+  function api(){ try{ return (window.apiBase && window.apiBase()) || ''; }catch(e){ return ''; } }
+  function toast(m){ try{ window.showToast && window.showToast(m); }catch(e){ console.log(m); } }
+
+  function injectStyle(){
+    if (document.getElementById('v58-style')) return;
+    var s = document.createElement('style');
+    s.id = 'v58-style';
+    s.textContent =
+      '.v58-overlay{position:fixed;inset:0;z-index:10080;background:rgba(47,31,11,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px}'+
+      '.v58-overlay.hidden{display:none}'+
+      '.v58-modal{background:var(--panel,#fff8ec);border:1px solid var(--border2,#a8731f);border-radius:14px;width:100%;max-width:360px;padding:18px;text-align:center;animation:v58pop .2s ease}'+
+      '@keyframes v58pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}'+
+      '.v58-title{font-size:15px;font-weight:700;color:var(--gold2,#7b4f13);margin-bottom:4px}'+
+      '.v58-help{font-size:11px;color:var(--parch3,#7a664d);line-height:1.45;margin-bottom:12px}'+
+      '.v58-qr{display:inline-block;background:#fff;padding:10px;border-radius:10px;border:1px solid var(--border,#d0ad72);min-height:60px}'+
+      '.v58-qr img,.v58-qr canvas{display:block}'+
+      '.v58-link{width:100%;margin-top:12px;font-size:11px;padding:8px;border:1px solid var(--border,#d0ad72);border-radius:8px;background:var(--panel3,#f6ead6);color:var(--parch2,#4b3a29);word-break:break-all}'+
+      '.v58-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}'+
+      '.v58-spinner{font-size:12px;color:var(--parch3,#7a664d);padding:20px}'+
+      // banner do modo leitura
+      '.v58-banner{position:sticky;top:0;z-index:9000;background:#7b4f13;color:#fff8ec;font-size:12px;font-weight:700;text-align:center;padding:7px 10px;letter-spacing:.3px}'+
+      'body.v58-readonly input,body.v58-readonly select,body.v58-readonly textarea{pointer-events:none!important}'+
+      'body.v58-readonly .v30-cloud-fab,body.v58-readonly .v44-backup-fab,body.v58-readonly #v30-account-bar,body.v58-readonly #v44-account-bar{display:none!important}'+
+      'body.v58-readonly .nav-btn.v58-nav-hidden{display:none!important}';
+    document.head.appendChild(s);
+  }
+
+  // ---------- modal de QR ----------
+  function ensureOverlay(){
+    if (document.getElementById('v58-share-overlay')) return;
+    var ov = document.createElement('div');
+    ov.id = 'v58-share-overlay'; ov.className = 'v58-overlay hidden';
+    ov.innerHTML =
+      '<div class="v58-modal">'+
+        '<div class="v58-title">Compartilhar ficha</div>'+
+        '<div class="v58-help">Quem abrir o link vê a ficha em <strong>somente leitura</strong>. Atualiza sozinho quando você salvar na nuvem.</div>'+
+        '<div id="v58-body"></div>'+
+      '</div>';
+    ov.addEventListener('click', function(e){ if (e.target === ov) closeModal(); });
+    document.body.appendChild(ov);
+  }
+  function openModal(html){ ensureOverlay(); document.getElementById('v58-body').innerHTML = html; document.getElementById('v58-share-overlay').classList.remove('hidden'); }
+  function closeModal(){ document.getElementById('v58-share-overlay')?.classList.add('hidden'); }
+  window.v58CloseShare = closeModal;
+
+  function loadQrLib(){
+    return new Promise(function(resolve, reject){
+      if (window.QRCode) return resolve();
+      var s = document.createElement('script'); s.src = QR_LIB;
+      s.onload = function(){ resolve(); }; s.onerror = function(){ reject(new Error('Não foi possível carregar a biblioteca de QR.')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function renderShare(url){
+    openModal('<div class="v58-spinner">Gerando QR...</div>');
+    var body = document.getElementById('v58-body');
+    body.innerHTML =
+      '<div class="v58-qr" id="v58-qr"></div>'+
+      '<div class="v58-link" id="v58-link">'+esc(url)+'</div>'+
+      '<div class="v58-actions">'+
+        '<button class="btn btn-sm btn-gold" type="button" id="v58-copy">Copiar link</button>'+
+        '<button class="btn btn-sm btn-ghost" type="button" id="v58-open">Abrir</button>'+
+        '<button class="btn btn-sm btn-ghost" type="button" id="v58-revoke" style="color:#9b3838;border-color:#9b3838">Revogar</button>'+
+        '<button class="btn btn-sm btn-ghost" type="button" id="v58-close">Fechar</button>'+
+      '</div>';
+    body.querySelector('#v58-copy').addEventListener('click', function(){ try{ navigator.clipboard.writeText(url); toast('Link copiado'); }catch(e){ toast('Copie manualmente o link acima'); } });
+    body.querySelector('#v58-open').addEventListener('click', function(){ window.open(url, '_blank'); });
+    body.querySelector('#v58-close').addEventListener('click', closeModal);
+    body.querySelector('#v58-revoke').addEventListener('click', revokeShare);
+    try {
+      await loadQrLib();
+      var box = document.getElementById('v58-qr'); box.innerHTML = '';
+      new window.QRCode(box, { text: url, width: 216, height: 216, correctLevel: window.QRCode.CorrectLevel.M });
+    } catch(e) {
+      document.getElementById('v58-qr').innerHTML = '<div style="font-size:11px;color:#9b3838;padding:20px">QR indisponível offline.<br>Use o link acima.</div>';
+    }
+  }
+  function renderShareError(msg){ openModal('<div style="font-size:12px;color:#9b3838;line-height:1.5;padding:8px">'+esc(msg)+'</div><div class="v58-actions"><button class="btn btn-sm btn-ghost" type="button" onclick="v58CloseShare()">Fechar</button></div>'); }
+
+  window.v58Share = async function(){
+    var base = api(), token = lsGet(TOKEN_KEY), id = lsGet(SLOT_KEY);
+    if (!base) { renderShareError('API não configurada.'); return; }
+    if (!token) { renderShareError('Entre na sua conta para compartilhar.'); try{ window.vauthOpen && window.vauthOpen(); }catch(e){} return; }
+    if (!id) { renderShareError('Salve a ficha na nuvem primeiro — ela precisa estar na nuvem para gerar o link.'); return; }
+    openModal('<div class="v58-spinner">Gerando link...</div>');
+    try {
+      var res = await fetch(base + '/characters/' + id + '/share', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token, 'x-device-id':lsGet(DEVICE_KEY)||'' } });
+      var data = await res.json().catch(function(){ return {}; });
+      if (!res.ok || !data.shareToken) throw new Error(data.error || 'Falha ao gerar o link.');
+      renderShare(location.origin + location.pathname + '?share=' + encodeURIComponent(data.shareToken));
+    } catch(e){ renderShareError(e.message); }
+  };
+  async function revokeShare(){
+    var base = api(), token = lsGet(TOKEN_KEY), id = lsGet(SLOT_KEY);
+    if (!base || !token || !id) return;
+    if (!confirm('Revogar o link? Quem já tiver o QR não conseguirá mais abrir a ficha.')) return;
+    try {
+      await fetch(base + '/characters/' + id + '/share', { method:'DELETE', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token, 'x-device-id':lsGet(DEVICE_KEY)||'' } });
+      toast('Compartilhamento revogado'); closeModal();
+    } catch(e){ toast('Erro ao revogar'); }
+  }
+
+  // botão no painel de backup
+  function ensureShareButton(){
+    var ov = document.getElementById('v44-backup-overlay');
+    if (!ov || document.getElementById('v58-share-btn')) return;
+    var printBtn = ov.querySelector('button[onclick*="v32PrintSheet"]');
+    var btn = document.createElement('button');
+    btn.id = 'v58-share-btn'; btn.type = 'button';
+    btn.className = printBtn ? printBtn.className : 'btn btn-sm';
+    btn.innerHTML = '<strong>Compartilhar (QR)</strong><span>Link e QR somente-leitura</span>';
+    btn.addEventListener('click', function(){ window.v58Share(); });
+    if (printBtn && printBtn.parentNode) printBtn.parentNode.insertBefore(btn, printBtn.nextSibling);
+    else ov.appendChild(btn);
+  }
+
+  // ---------- MODO SOMENTE LEITURA (?share=TOKEN) ----------
+  function shareTokenFromUrl(){ try { return new URLSearchParams(location.search).get('share'); } catch(e){ return null; } }
+
+  function applyReadOnlyUI(name){
+    document.body.classList.add('v58-readonly');
+    // banner
+    if (!document.getElementById('v58-banner')) {
+      var b = document.createElement('div');
+      b.id = 'v58-banner'; b.className = 'v58-banner';
+      b.textContent = '👁 Modo leitura — ' + (name || 'ficha compartilhada');
+      document.body.insertBefore(b, document.body.firstChild);
+    }
+    // esconde abas fora da lista permitida
+    document.querySelectorAll('.nav-btn').forEach(function(btn){
+      var m = String(btn.getAttribute('onclick')||'').match(/nav\('([^']+)'/);
+      if (m && ALLOW_NAV.indexOf(m[1]) === -1) btn.classList.add('v58-nav-hidden');
+    });
+  }
+
+  async function enterReadOnly(tok){
+    // neutraliza qualquer salvamento (não pode sobrescrever a ficha local do visitante)
+    window.__v58_ro = true;
+    ['saveData','saveDebounce'].forEach(function(fn){
+      var orig = window[fn];
+      if (typeof orig === 'function') window[fn] = function(){ if (window.__v58_ro) return; return orig.apply(this, arguments); };
+    });
+    try {
+      var base = api();
+      var res = await fetch(base + '/share/' + encodeURIComponent(tok));
+      var data = await res.json().catch(function(){ return {}; });
+      if (!res.ok || !data.data) throw new Error(data.error || 'Ficha não encontrada.');
+      if (window.v30RestoreSnapshot) window.v30RestoreSnapshot(data.data);
+      try { window.v30FullRefresh && window.v30FullRefresh(); } catch(e){}
+      applyReadOnlyUI(data.name);
+    } catch(e){
+      applyReadOnlyUI('indisponível');
+      alert('Não foi possível abrir a ficha compartilhada: ' + e.message);
+    }
+  }
+
+  window.v58ShareHealthCheck = function(){
+    var r = { shareFn:typeof window.v58Share, button:!!document.getElementById('v58-share-btn'),
+      readOnly:!!window.__v58_ro, tokenInUrl:!!shareTokenFromUrl(), qrLib:!!window.QRCode };
+    console.table(r); return r;
+  };
+
+  // ---------- init ----------
+  injectStyle();
+  ensureShareButton();
+  var tok = shareTokenFromUrl();
+  if (tok) setTimeout(function(){ enterReadOnly(tok); }, 400);   // deixa o app inicializar antes de restaurar
+})();
+</script>
+
 </body>
 </html>
