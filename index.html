@@ -2002,7 +2002,7 @@ textarea:focus{
       </button>
     </div>
     <input id="v43-import-file" type="file" accept="application/json,.json" style="display:none" onchange="v43ImportFullBackupFile(event)">
-    <div class="v43-backup-note">Backup completo inclui: ficha, atributos, equipamentos, mochila, armas, magias, slots, dados, condições, descanso, maestrias, lore, anotações, diário por sessão, NPCs, locais, facções, pendências e estados salvos do app.</div>
+    <div class="v43-backup-note">Backup completo inclui: ficha, atributos, equipamentos, mochila, armas, magias, slots, dados, condições, descanso, lore, anotações, diário por sessão, NPCs, locais, facções, pendências e estados salvos do app.</div>
     <div class="v30-cloud-list-head">
       <strong>Personagens salvos</strong>
       <button type="button" onclick="v30CloudList()">Atualizar</button>
@@ -2150,9 +2150,9 @@ textarea:focus{
       <div><label class="fld">Jogador</label><input id="pplayer" placeholder="Seu nome" oninput="saveDebounce()"></div>
     </div>
     <div class="g3">
-      <div><label class="fld">Espécie</label>
+      <div><label class="fld">Raça</label>
         <select id="praca" onchange="applyRace()">
-          <option value="">— Espécie —</option>
+          <option value="">— Raça —</option>
           <option>Anão da Colina</option><option>Anão da Montanha</option>
           <option>Alto Elfo</option><option>Elfo da Floresta</option><option>Drow</option>
           <option>Halfling Pés-Leves</option><option>Halfling Robusto</option>
@@ -2642,19 +2642,103 @@ const SPELL_SLOTS={1:[2],2:[3],3:[4,2],4:[4,3],5:[4,3,2],6:[4,3,3],7:[4,3,3,1],8
 const NO_SPELL=['Bárbaro','Guerreiro','Monge'];
 const XP_LEVELS=[0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,100000,120000,140000,165000,195000,225000,265000,305000,355000];
 const HD={Bárbaro:12,Guerreiro:10,Paladino:10,Patrulheiro:10,Monge:8,Clérigo:8,Druida:8,Bardo:8,Ladino:8,Feiticeiro:6,Bruxo:8,Mago:6};
+// Progressão completa por nível (PHB 2014). Usada no level-up e no visualizador de progressão (v62).
 const CLASS_FEATURES={
-  Bárbaro:{5:'Ataque Extra',7:'Instinto Felino',9:'Movimento Bruto',11:'Fúria Implacável'},
-  Bardo:{5:'Inspiração de Bardo d8',6:'Contra-encanto',10:'Segredos Mágicos'},
-  Bruxo:{5:'Invocações nível 5',6:'Tom Sobrenatural',11:'Forma Mística'},
-  Clérigo:{5:'Destruir Mortos-Vivos melhorado',8:'Golpe Divino',10:'Intervenção Divina'},
-  Druida:{5:'Formas de Besta melhoradas',10:'Passo Eterno'},
-  Feiticeiro:{5:'Metamagia maior',6:'Elo Arcano',14:'Fonte de Magia'},
-  Guerreiro:{5:'Ataque Extra',9:'Indomável',11:'Três Ataques'},
-  Ladino:{5:'Ataque Furtivo 3d6',7:'Evasão',11:'Confiabilidade'},
-  Mago:{5:'Tradição Arcana nível 6',10:'Mestre Arcano'},
-  Monge:{5:'Ataque Extra + Corpo de Estudante',9:'Aprimoramento de Ki'},
-  Paladino:{5:'Ataque Extra',6:'Aura de Proteção',11:'Pureza Sagrada'},
-  Patrulheiro:{5:'Ataque Extra',6:'Esquiva Natural',10:'Camuflar-se na Multidão'}
+  Bárbaro:{
+    1:'Fúria, Defesa sem Armadura (CA = 10 + DES + CON)',2:'Ataque Imprudente, Percepção de Perigo (vantagem vs. efeitos de DES)',
+    3:'Caminho Primal (subclasse), +1 uso de Fúria',4:'Incremento de Atributo ou Talento',5:'Ataque Extra, Movimento Rápido (+3m)',
+    6:'Característica do Caminho Primal',7:'Instinto Selvagem (vantagem na iniciativa)',8:'Incremento de Atributo ou Talento',
+    9:'Crítico Brutal (+1 dado de dano)',10:'Característica do Caminho Primal',11:'Fúria Implacável (teste de CON p/ ficar com 1 PV)',
+    12:'Incremento de Atributo ou Talento',13:'Crítico Brutal (+2 dados)',14:'Característica do Caminho Primal',
+    15:'Fúria Persistente (não termina sozinha)',16:'Incremento de Atributo ou Talento',17:'Crítico Brutal (+3 dados)',
+    18:'Força Indomável (usa FOR no lugar do teste se for maior)',19:'Incremento de Atributo ou Talento',20:'Campeão Primal (+4 FOR e CON, máx. 24)'
+  },
+  Bardo:{
+    1:'Conjuração, Inspiração de Bardo (d6)',2:'Talento para Tudo (½ prof.), Canção de Descanso (d6)',3:'Colégio de Bardo (subclasse), Especialização em 2 perícias',
+    4:'Incremento de Atributo ou Talento',5:'Fonte de Inspiração (recupera no desc. curto), Inspiração d8',6:'Contra-Encanto, Característica do Colégio',
+    7:'Magias de 4º nível',8:'Incremento de Atributo ou Talento',9:'Canção de Descanso d8, magias de 5º nível',
+    10:'Segredos Mágicos (2), Especialização (+2 perícias), Inspiração d10',11:'Magias de 6º nível',12:'Incremento de Atributo ou Talento',
+    13:'Canção de Descanso d10, magias de 7º nível',14:'Segredos Mágicos (2), Característica do Colégio',15:'Inspiração d12, magias de 8º nível',
+    16:'Incremento de Atributo ou Talento',17:'Canção de Descanso d12, magias de 9º nível',18:'Segredos Mágicos (2)',
+    19:'Incremento de Atributo ou Talento',20:'Inspiração Superior (recupera 2 usos na iniciativa)'
+  },
+  Bruxo:{
+    1:'Conjuração de Pacto, Patrono Sobrenatural',2:'Invocações Místicas (2)',3:'Dádiva do Pacto (Lâmina/Tomo/Corrente)',
+    4:'Incremento de Atributo ou Talento',5:'Magias de 3º nível, +1 invocação',6:'Característica do Patrono',7:'Magias de 4º nível, +1 invocação',
+    8:'Incremento de Atributo ou Talento',9:'Magias de 5º nível, +1 invocação',10:'Característica do Patrono',11:'Arcano Místico (1 magia de 6º nível, 1×/desc. longo)',
+    12:'Incremento de Atributo ou Talento, +1 invocação',13:'Arcano Místico (7º nível)',14:'Característica do Patrono',15:'Arcano Místico (8º nível), +1 invocação',
+    16:'Incremento de Atributo ou Talento',17:'Arcano Místico (9º nível)',18:'+1 invocação',19:'Incremento de Atributo ou Talento',
+    20:'Mestre Místico (recupera todos os espaços de pacto 1×/dia)'
+  },
+  Clérigo:{
+    1:'Conjuração, Domínio Divino (subclasse)',2:'Canalizar Divindade (1×), característica do Domínio',3:'Magias de 2º nível',
+    4:'Incremento de Atributo ou Talento',5:'Destruir Mortos-Vivos (ND 1/2), magias de 3º nível',6:'Canalizar Divindade (2×), característica do Domínio',
+    7:'Magias de 4º nível',8:'Incremento de Atributo ou Talento, Destruir (ND 1), característica do Domínio',9:'Magias de 5º nível',
+    10:'Intervenção Divina',11:'Destruir Mortos-Vivos (ND 2), magias de 6º nível',12:'Incremento de Atributo ou Talento',13:'Magias de 7º nível',
+    14:'Destruir Mortos-Vivos (ND 3)',15:'Magias de 8º nível',16:'Incremento de Atributo ou Talento',17:'Destruir (ND 4), característica do Domínio, magias de 9º nível',
+    18:'Canalizar Divindade (3×)',19:'Incremento de Atributo ou Talento',20:'Intervenção Divina aprimorada (sucesso automático)'
+  },
+  Druida:{
+    1:'Conjuração, Druídico (idioma secreto)',2:'Forma Selvagem, Círculo Druídico (subclasse)',3:'Magias de 2º nível',
+    4:'Incremento de Atributo ou Talento, Forma Selvagem melhorada (nadar)',5:'Magias de 3º nível',6:'Característica do Círculo',7:'Magias de 4º nível',
+    8:'Incremento de Atributo ou Talento, Forma Selvagem (voar)',9:'Magias de 5º nível',10:'Característica do Círculo',11:'Magias de 6º nível',
+    12:'Incremento de Atributo ou Talento',13:'Magias de 7º nível',14:'Característica do Círculo',15:'Magias de 8º nível',
+    16:'Incremento de Atributo ou Talento',17:'Magias de 9º nível',18:'Corpo Atemporal, Bestas Ilimitadas',19:'Incremento de Atributo ou Talento',
+    20:'Arquidruida (Forma Selvagem ilimitada)'
+  },
+  Feiticeiro:{
+    1:'Conjuração, Origem de Feitiçaria (subclasse)',2:'Fonte de Magia (Pontos de Feitiçaria)',3:'Metamagia (2 opções), magias de 2º nível',
+    4:'Incremento de Atributo ou Talento',5:'Magias de 3º nível',6:'Característica da Origem',7:'Magias de 4º nível',8:'Incremento de Atributo ou Talento',
+    9:'Magias de 5º nível',10:'Metamagia (+1 opção), magias de 6º nível',11:'Magias de 6º nível',12:'Incremento de Atributo ou Talento',13:'Magias de 7º nível',
+    14:'Característica da Origem',15:'Magias de 8º nível',16:'Incremento de Atributo ou Talento',17:'Metamagia (+1 opção), magias de 9º nível',
+    18:'Característica da Origem',19:'Incremento de Atributo ou Talento',20:'Restauração de Feitiçaria (recupera 4 pontos no desc. curto)'
+  },
+  Guerreiro:{
+    1:'Estilo de Luta, Retomar o Fôlego',2:'Surto de Ação (1×)',3:'Arquétipo Marcial (subclasse)',4:'Incremento de Atributo ou Talento',
+    5:'Ataque Extra (2 ataques)',6:'Incremento de Atributo ou Talento',7:'Característica do Arquétipo',8:'Incremento de Atributo ou Talento',
+    9:'Indomável (re-rola 1 resistência, 1×)',10:'Característica do Arquétipo',11:'Ataque Extra (3 ataques)',12:'Incremento de Atributo ou Talento',
+    13:'Indomável (2×)',14:'Incremento de Atributo ou Talento',15:'Característica do Arquétipo',16:'Incremento de Atributo ou Talento',
+    17:'Surto de Ação (2×), Indomável (3×)',18:'Característica do Arquétipo',19:'Incremento de Atributo ou Talento',20:'Ataque Extra (4 ataques)'
+  },
+  Ladino:{
+    1:'Ataque Furtivo 1d6, Especialização (2 perícias), Ladinagem, Gíria de Ladrão',2:'Ação Ardilosa (Disparada/Desengajar/Esconder como bônus)',
+    3:'Arquétipo Ladino (subclasse), Furtivo 2d6',4:'Incremento de Atributo ou Talento',5:'Esquiva Sobrenatural, Furtivo 3d6',
+    6:'Especialização (+2 perícias)',7:'Evasão, Furtivo 4d6',8:'Incremento de Atributo ou Talento',9:'Característica do Arquétipo, Furtivo 5d6',
+    10:'Incremento de Atributo ou Talento',11:'Talento Confiável (mín. 10 nos testes com prof.), Furtivo 6d6',12:'Incremento de Atributo ou Talento',
+    13:'Característica do Arquétipo, Furtivo 7d6',14:'Sentido Cego (percebe inimigos ocultos a 3m), Furtivo 7d6',15:'Mente Escorregadia (prof. em resistência de SAB), Furtivo 8d6',
+    16:'Incremento de Atributo ou Talento',17:'Característica do Arquétipo, Furtivo 9d6',18:'Esquivo (ataques contra você não têm vantagem), Furtivo 9d6',
+    19:'Incremento de Atributo ou Talento',20:'Golpe de Sorte (transforma erro em acerto 1×/desc.), Furtivo 10d6'
+  },
+  Mago:{
+    1:'Conjuração, Recuperação Arcana',2:'Tradição Arcana (subclasse)',3:'Magias de 2º nível',4:'Incremento de Atributo ou Talento',
+    5:'Magias de 3º nível',6:'Característica da Tradição',7:'Magias de 4º nível',8:'Incremento de Atributo ou Talento',9:'Magias de 5º nível',
+    10:'Característica da Tradição',11:'Magias de 6º nível',12:'Incremento de Atributo ou Talento',13:'Magias de 7º nível',14:'Característica da Tradição',
+    15:'Magias de 8º nível',16:'Incremento de Atributo ou Talento',17:'Magias de 9º nível',18:'Domínio de Magia (2 magias sempre prontas)',
+    19:'Incremento de Atributo ou Talento',20:'Magias Assinatura (2 magias de 3º nível, grátis 1×/desc. curto)'
+  },
+  Monge:{
+    1:'Defesa sem Armadura (CA = 10 + DES + SAB), Artes Marciais (dano d4)',2:'Ki, Movimento sem Armadura (+3m)',3:'Tradição Monástica (subclasse), Defletir Projéteis',
+    4:'Incremento de Atributo ou Talento, Queda Lenta',5:'Ataque Extra, Golpe Atordoante, dado de Artes Marciais d6',6:'Ki Empoderado, característica da Tradição',
+    7:'Evasão, Tranquilidade da Mente',8:'Incremento de Atributo ou Talento',9:'Movimento sem Armadura melhorado (paredes/água)',10:'Pureza do Corpo (imune a doença/veneno)',
+    11:'Característica da Tradição, dado d8',12:'Incremento de Atributo ou Talento',13:'Língua do Sol e da Lua (fala qualquer idioma)',14:'Alma de Diamante (prof. em todas as resistências)',
+    15:'Corpo Atemporal (não envelhece), dado d8',16:'Incremento de Atributo ou Talento',17:'Característica da Tradição',18:'Corpo Vazio (invisibilidade, resistência)',
+    19:'Incremento de Atributo ou Talento',20:'Eu Perfeito (recupera 4 ki ao rolar iniciativa sem ki)'
+  },
+  Paladino:{
+    1:'Sentido Divino, Imposição das Mãos',2:'Estilo de Luta, Conjuração, Castigo Divino',3:'Saúde Divina (imune a doença), Juramento Sagrado (subclasse)',
+    4:'Incremento de Atributo ou Talento',5:'Ataque Extra',6:'Aura de Proteção (+CAR nas resistências a 3m)',7:'Característica do Juramento',
+    8:'Incremento de Atributo ou Talento',9:'Magias de 3º nível',10:'Aura de Coragem (imune a amedrontado)',11:'Castigo Divino Aprimorado (+1d8 em todo ataque corpo a corpo)',
+    12:'Incremento de Atributo ou Talento',13:'Magias de 4º nível',14:'Toque Purificador (gasta IdM p/ remover efeitos)',15:'Característica do Juramento',
+    16:'Incremento de Atributo ou Talento',17:'Magias de 5º nível',18:'Auras com alcance de 9m',19:'Incremento de Atributo ou Talento',20:'Característica do Juramento (forma sagrada)'
+  },
+  Patrulheiro:{
+    1:'Inimigo Favorito, Explorador Natural',2:'Estilo de Luta, Conjuração',3:'Conclave do Patrulheiro (subclasse), Consciência Primal',
+    4:'Incremento de Atributo ou Talento',5:'Ataque Extra',6:'Inimigo Favorito e Explorador melhorados',7:'Característica do Conclave',
+    8:'Incremento de Atributo ou Talento, Movimento sem Trilhas (terreno difícil não atrasa)',9:'Magias de 3º nível',10:'Esconder-se à Vista, Explorador melhorado',
+    11:'Característica do Conclave',12:'Incremento de Atributo ou Talento',13:'Magias de 4º nível',14:'Desaparecer (Esconder como ação bônus)',
+    15:'Característica do Conclave',16:'Incremento de Atributo ou Talento',17:'Magias de 5º nível',18:'Sentidos Selvagens (percebe criaturas a 9m)',
+    19:'Incremento de Atributo ou Talento',20:'Matador de Inimigos Favoritos (re-rola dano vs. inimigo favorito)'
+  }
 };
 
 
@@ -2735,10 +2819,8 @@ const BACKGROUNDS_2024_DATA={
   'Viajante':{abilities:['des','sab','car'],originFeat:'Sortudo'},
   'Herói do Povo':{abilities:['for','con','sab'],originFeat:'Durável'}
 };
-Object.entries(BACKGROUNDS_2024_DATA).forEach(([name,data])=>{
-  if(!BACKGROUNDS[name])BACKGROUNDS[name]={skills:[],tools:'—',langs:'—',equipment:'Defina com o mestre',feature:data.originFeat};
-  Object.assign(BACKGROUNDS[name],data,{feature:data.originFeat,edition:'2024'});
-});
+// PHB 2014: o modelo 2024 de antecedente (bônus de atributo + talento de origem) fica DESLIGADO.
+// Mantemos apenas os antecedentes do PHB 2014 (objeto BACKGROUNDS acima); BACKGROUNDS_2024_DATA não é mesclado.
 
 
 // ===================== UI HELPERS =====================
@@ -2770,14 +2852,17 @@ function renderDeathSaves(){
 
 function getRace(){return RACES[document.getElementById('praca')?.value]||null;}
 function getRaceBonus(a){
-  // D&D 2024: atributos não vêm mais da espécie. Mantido só para compatibilidade de saves antigos.
-  return 0;
+  // PHB 2014: o bônus de atributo vem da RAÇA.
+  const r=getRace();
+  return (r&&r.bonus&&parseInt(r.bonus[a]))||0;
 }
 function getOriginBonus(a){
-  return parseInt((originBonuses||{})[a])||0;
+  // PHB 2014: antecedente NÃO concede bônus de atributo.
+  return 0;
 }
 function formatRaceBonus(r){
-  return 'D&D 2024: atributos definidos pelo antecedente/origem, não pela espécie.';
+  if(!r||!r.bonus)return 'Sem bônus de atributo';
+  return Object.entries(r.bonus).map(([a,v])=>`${AN[a]||String(a).toUpperCase()} ${modStr(v)}`).join(', ');
 }
 function formatOriginBonus(){
   const entries=Object.entries(originBonuses||{}).filter(([,v])=>parseInt(v)||0);
@@ -2886,11 +2971,12 @@ function renderRaceInfo(){
   box.style.display='block';
   box.classList.toggle('collapsed',raceInfoCollapsed);
   box.innerHTML=`
-    <div class="info-head" onclick="toggleRaceInfo()" title="Mostrar/ocultar informações da espécie">
-      <div class="info-head-left"><strong>${esc(name)}</strong><span class="badge badge-gold">espécie 2024</span></div>
+    <div class="info-head" onclick="toggleRaceInfo()" title="Mostrar/ocultar informações da raça">
+      <div class="info-head-left"><strong>${esc(name)}</strong><span class="badge badge-gold">raça</span></div>
       <button type="button" class="collapse-toggle" aria-label="Mostrar/ocultar"><span class="info-arrow">⌄</span><span class="toggle-close">Ocultar</span><span class="toggle-open">Ver detalhes</span></button>
     </div>
     <div class="info-body">
+      <div class="bg-row"><span class="bg-label">Atributos</span><span>${formatRaceBonus(r)}</span></div>
       <div class="bg-row"><span class="bg-label">Desloc.</span><span>${esc(r.speed||'—')}</span></div>
       <div class="bg-row"><span class="bg-label">Idiomas</span><span>${esc(r.langs||'—')}</span></div>
       <div class="bg-row"><span class="bg-label">Traços</span><span>${(r.traits||[]).map(t=>loreButton(t,'vantagens')).join('')}</span></div>
@@ -2962,11 +3048,10 @@ function renderBackgroundInfo(){
   box.classList.toggle('collapsed',backgroundInfoCollapsed);
   box.innerHTML=`
     <div class="info-head" onclick="toggleBackgroundInfo()" title="Mostrar/ocultar informações do antecedente">
-      <div class="info-head-left"><strong>${esc(name)}</strong><span class="badge badge-gold">bônus automático</span></div>
+      <div class="info-head-left"><strong>${esc(name)}</strong><span class="badge badge-gold">antecedente</span></div>
       <button type="button" class="collapse-toggle" aria-label="Mostrar/ocultar"><span class="info-arrow">⌄</span><span class="toggle-close">Ocultar</span><span class="toggle-open">Ver detalhes</span></button>
     </div>
     <div class="info-body">
-      ${renderOriginPicker(bg)}
       <div class="bg-row"><span class="bg-label">Perícias</span><span>${bg.skills.map(esc).join(', ')}</span></div>
       <div class="bg-row"><span class="bg-label">Ferr./Idiomas</span><span>${esc(bg.tools)}${bg.langs&&bg.langs!=='—'?' • '+esc(bg.langs):''}</span></div>
       <div class="bg-row"><span class="bg-label">Equipamento</span><span>${esc(bg.equipment)}</span></div>
@@ -3015,7 +3100,7 @@ function getAttrWithItems(a){
       if(it.effects[key])bonus+=parseInt(it.effects[key])||0;
     }
   });
-  return getAttr(a)+getOriginBonus(a)+bonus;
+  return getAttr(a)+getRaceBonus(a)+bonus;
 }
 function getModWithItems(a){return getMod(getAttrWithItems(a))}
 
@@ -3057,7 +3142,7 @@ function renderDerived(){
   document.getElementById('derived-grid').innerHTML=`
     <div class="der-box inspiration-box">
       <div class="inspiration-mark">✦</div>
-      <div class="inspiration-copy"><div class="inspiration-title">Inspiração Heroica</div><div class="inspiration-sub">Use conforme a regra 2024 de Heroic Inspiration.</div></div>
+      <div class="inspiration-copy"><div class="inspiration-title">Inspiração</div><div class="inspiration-sub">Vantagem em um teste, ataque ou resistência (PHB 2014).</div></div>
       <input class="inspiration-input" id="pinspiration" type="number" min="0" max="9" value="${esc(inspiration)}" placeholder="0" oninput="saveDebounce()">
     </div>
     <div class="der-box"><div class="der-val">${modStr(des)}</div><div class="der-lbl">Iniciativa</div></div>
@@ -3100,7 +3185,7 @@ function calcCA(){
 function renderEqEffectsStrip(){
   const effects=[];
   const race=getRace();
-  if(race&&race.bonus){Object.entries(race.bonus).forEach(([a,v])=>effects.push(`${AN[a]||a.toUpperCase()} racial ${modStr(v)} ${applyRacialBonuses?'ativo':'informativo'}`));}
+  if(race&&race.bonus){Object.entries(race.bonus).forEach(([a,v])=>effects.push(`${AN[a]||a.toUpperCase()} racial ${modStr(v)} ativo`));}
   if(document.getElementById('praca')?.value==='Anão da Colina')effects.push('PV racial +1/nível');
   inventory.filter(it=>it.equipped).forEach(it=>{
     if(it.effects){
@@ -3248,7 +3333,7 @@ const WEAPON_MASTERY_2024={
   'adaga':'Nick','clava':'Slow','clava grande':'Push','machadinha':'Vex','azagaia':'Slow','maça':'Sap','bordão':'Topple','lança':'Sap','besta leve':'Slow','dardo':'Vex','arco curto':'Vex','funda':'Slow',
   'machado de batalha':'Topple','florete':'Vex','rapieira':'Vex','espada curta':'Vex','espada longa':'Sap','cimitarra':'Nick','chicote':'Slow','arco longo':'Slow','besta de mão':'Vex','besta pesada':'Push'
 };
-Object.entries(WEAPON_MASTERY_2024).forEach(([k,m])=>{ if(WEAPON_PRESETS[k])WEAPON_PRESETS[k].mastery=m; });
+// PHB 2014: não existe Maestria de Arma — o mapa WEAPON_MASTERY_2024 fica definido mas NÃO é aplicado.
 function weaponPresetOptions(selected){
   const groups={simples:'Simples',marcial:'Marciais',custom:'Personalizada'};
   let html='';
@@ -3277,7 +3362,6 @@ function applyWeaponPreset(){
   set('if-alcance-max',w.alcanceMax??'');
   set('if-dano-versatil',w.danoVersatil||'');
   set('if-propriedades',Array.isArray(w.propriedades)?w.propriedades.join(', '):'');
-  set('if-mastery',w.mastery||'');
   check('if-finesse',w.finesse);
   check('if-versatile',w.versatile);
   check('if-thrown',w.thrown);
@@ -3300,7 +3384,6 @@ function weaponRangeText(w){
 }
 function weaponPropertyBadges(w){
   const props=[];
-  if(w.mastery)props.push(`<span class="badge badge-gold">Maestria: ${esc(w.mastery)}</span>`);
   if(w.finesse)props.push(`<span class="badge badge-gray">Acuidade</span>`);
   if(w.leve)props.push(`<span class="badge badge-gray">Leve</span>`);
   if(w.versatile)props.push(`<span class="badge badge-gray">Versátil${w.danoVersatil?' '+esc(w.danoVersatil):''}</span>`);
@@ -3507,11 +3590,6 @@ function buildItemForm(it){
       </div>
     </div>
     <label class="fld">Propriedades</label><input id="if-propriedades" value="${v('propriedades')}" placeholder="ex: Munição, Pesada, Duas mãos">
-    <label class="fld">Maestria da Arma (2024)</label>
-    <select id="if-mastery">
-      ${['','Cleave','Graze','Nick','Push','Sap','Slow','Topple','Vex'].map(m=>`<option value="${m}" ${v('mastery')===m?'selected':''}>${m||'— sem maestria —'}</option>`).join('')}
-    </select>
-    <div class="v16-note">A maestria só pode ser usada se sua classe/talento liberar Weapon Mastery para essa arma.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
       <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--parch3);cursor:pointer"><input type="checkbox" id="if-finesse" ${chk('finesse')}> Acuidade</label>
       <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--parch3);cursor:pointer"><input type="checkbox" id="if-versatile" ${chk('versatile')}> Versátil</label>
@@ -3593,7 +3671,6 @@ function saveItem(){
     item.alcance=weaponRangeText(item);
     item.danoVersatil=document.getElementById('if-dano-versatil')?.value||'';
     item.propriedades=document.getElementById('if-propriedades')?.value||'';
-    item.mastery=document.getElementById('if-mastery')?.value||'';
     item.finesse=document.getElementById('if-finesse').checked;
     item.versatile=document.getElementById('if-versatile').checked;
     item.thrown=document.getElementById('if-thrown').checked;
@@ -3897,7 +3974,7 @@ function renderCombatWeapons(){
         ${sneakHtml}
       </div>
       <div class="weapon-props">${weaponPropertyBadges(w)}</div>
-      <div class="smart-note">${w.mastery?`Maestria 2024: <strong>${esc(w.mastery)}</strong> • `:''}Bônus: ${st.attrName} ${modStr(st.damageBonus)}${st.proficient?' + proficiência '+modStr(st.prof):' sem proficiência'}${sneak&&!sneakUsed?' • furtivo disponível':' '}${sneak&&sneakUsed?' • furtivo já usado neste turno':''}</div>
+      <div class="smart-note">Bônus: ${st.attrName} ${modStr(st.damageBonus)}${st.proficient?' + proficiência '+modStr(st.prof):' sem proficiência'}${sneak&&!sneakUsed?' • furtivo disponível':' '}${sneak&&sneakUsed?' • furtivo já usado neste turno':''}</div>
       <div class="smart-actions">
         <button class="btn btn-sm btn-gold" onclick="rollWeaponAttackSmart(${idx},'normal',false)">Atacar</button>
         <button class="btn btn-sm btn-ghost" onclick="rollWeaponAttackSmart(${idx},'adv',false)">Vantagem</button>
@@ -8337,6 +8414,552 @@ Pendências para a próxima sessão:
   ensureShareButton();
   var tok = shareTokenFromUrl();
   if (tok) setTimeout(function(){ enterReadOnly(tok); }, 400);   // deixa o app inicializar antes de restaurar
+})();
+</script>
+
+
+<script>
+/* ============================================================
+   v59 — RECURSOS DE CLASSE (usos por descanso) — PHB 2014
+   - Recursos genéricos {nome, max, atual, reset:'curto'|'longo'}
+   - Descanso longo (hook v16LongRest) reseta TODOS
+   - Botão "Descanso curto" reseta só os de reset curto
+   - Card na aba Combate; persiste no snapshot
+   ============================================================ */
+(function(){
+  if (window.__v59ClassRes) return;
+  window.__v59ClassRes = true;
+
+  var KEY = 'dnd_v59_class_resources';
+  function read(){ try { var a = JSON.parse(localStorage.getItem(KEY)||'[]'); return Array.isArray(a)?a:[]; } catch(e){ return []; } }
+  function write(a){ try { localStorage.setItem(KEY, JSON.stringify(a||[])); } catch(e){} }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+  function toast(m){ try { window.showToast && window.showToast(m); } catch(e){} }
+  function uid(){ return 'res_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function clamp(n,lo,hi){ n=parseInt(n)||0; return Math.max(lo, Math.min(hi, n)); }
+
+  function injectStyle(){
+    if (document.getElementById('v59-style')) return;
+    var s = document.createElement('style'); s.id = 'v59-style';
+    s.textContent =
+      '.v59-res{background:var(--panel3,#f6ead6);border:1px solid var(--border,#d0ad72);border-radius:10px;padding:9px 11px;margin-bottom:8px}'+
+      '.v59-res-head{display:flex;align-items:center;justify-content:space-between;gap:8px}'+
+      '.v59-res-name{font-size:13px;font-weight:700;color:var(--parch,#241b12)}'+
+      '.v59-res-count{font-size:12px;font-weight:800;color:var(--gold2,#7b4f13)}'+
+      '.v59-pips{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}'+
+      '.v59-pip{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--gold,#a8731f);cursor:pointer;transition:.12s}'+
+      '.v59-pip.on{background:var(--gold,#a8731f)}'+
+      '.v59-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px}'+
+      '.v59-step{width:28px;height:28px;border:1px solid var(--border2,#a8731f);background:var(--panel2,#fffaf1);color:var(--gold2,#7b4f13);border-radius:7px;font-size:16px;font-weight:800;cursor:pointer;line-height:1}'+
+      '.v59-tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;padding:2px 7px;border-radius:8px;background:rgba(168,115,31,.14);color:var(--gold2,#7b4f13)}'+
+      '.v59-mini{background:none;border:none;color:var(--parch3,#7a664d);font-size:13px;cursor:pointer;padding:3px 5px;margin-left:auto}'+
+      '.v59-mini.del:hover{color:#9b3838}'+
+      '.v59-empty{font-size:11px;color:var(--parch3,#7a664d);text-align:center;padding:10px;line-height:1.5}'+
+      '.v59-overlay{position:fixed;inset:0;z-index:10065;background:rgba(47,31,11,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center}'+
+      '.v59-overlay.hidden{display:none}'+
+      '.v59-sheet{background:var(--panel,#fff8ec);border:1px solid var(--border2,#a8731f);border-radius:14px 14px 0 0;width:100%;max-width:680px;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}'+
+      '.v59-sheet label{display:block;font-size:11px;color:var(--parch3,#7a664d);margin:8px 0 3px;font-weight:600}';
+    document.head.appendChild(s);
+  }
+
+  function ensureCard(){
+    var combat = document.getElementById('combate');
+    if (!combat || document.getElementById('v59-card')) return;
+    var card = document.createElement('div');
+    card.className = 'card'; card.id = 'v59-card';
+    card.innerHTML =
+      '<div class="card-title">⚡ Recursos de Classe</div>'+
+      '<div id="v59-list"></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
+        '<button class="btn btn-sm btn-gold" type="button" id="v59-add">+ Recurso</button>'+
+        '<button class="btn btn-sm btn-ghost" type="button" id="v59-short">Descanso curto</button>'+
+      '</div>';
+    combat.appendChild(card);
+    card.querySelector('#v59-add').addEventListener('click', function(){ openForm(); });
+    card.querySelector('#v59-short').addEventListener('click', shortRest);
+    document.getElementById('v59-list').addEventListener('click', onListClick);
+  }
+
+  function resHtml(r){
+    var pips = '';
+    if (r.max <= 12){
+      for (var i=0;i<r.max;i++) pips += '<div class="v59-pip '+(i<r.current?'on':'')+'" data-act="pip" data-id="'+r.id+'" data-i="'+i+'"></div>';
+      pips = '<div class="v59-pips">'+pips+'</div>';
+    } else {
+      pips = '<div class="v59-row"><button class="v59-step" data-act="dec" data-id="'+r.id+'">−</button>'+
+             '<span class="v59-res-count">'+r.current+'</span>'+
+             '<button class="v59-step" data-act="inc" data-id="'+r.id+'">+</button></div>';
+    }
+    return '<div class="v59-res">'+
+      '<div class="v59-res-head"><span class="v59-res-name">'+esc(r.name)+'</span><span class="v59-res-count">'+r.current+' / '+r.max+'</span></div>'+
+      pips+
+      '<div class="v59-row">'+
+        (r.max<=12?'<button class="v59-step" data-act="dec" data-id="'+r.id+'">−</button><button class="v59-step" data-act="inc" data-id="'+r.id+'">+</button>':'')+
+        '<span class="v59-tag">descanso '+(r.reset==='curto'?'curto':'longo')+'</span>'+
+        '<button class="v59-mini" data-act="edit" data-id="'+r.id+'" title="Editar">✎</button>'+
+        '<button class="v59-mini del" data-act="del" data-id="'+r.id+'" title="Excluir">✕</button>'+
+      '</div>'+
+    '</div>';
+  }
+  function render(){
+    var el = document.getElementById('v59-list'); if (!el) return;
+    var list = read();
+    el.innerHTML = list.length ? list.map(resHtml).join('')
+      : '<div class="v59-empty">Nenhum recurso ainda. Adicione Fúria, Ki, Canalizar Divindade, Inspiração de Bardo...</div>';
+  }
+
+  function onListClick(e){
+    var t = e.target.closest('[data-act]'); if (!t) return;
+    var act = t.getAttribute('data-act'), id = t.getAttribute('data-id');
+    var list = read(), r = list.find(function(x){ return x.id===id; }); if (!r) return;
+    if (act==='inc') r.current = clamp(r.current+1, 0, r.max);
+    else if (act==='dec') r.current = clamp(r.current-1, 0, r.max);
+    else if (act==='pip'){ var i = parseInt(t.getAttribute('data-i')); r.current = (r.current===i+1) ? i : i+1; }
+    else if (act==='edit'){ openForm(r); return; }
+    else if (act==='del'){ if (!confirm('Excluir "'+r.name+'"?')) return; list = list.filter(function(x){ return x.id!==id; }); }
+    write(list); render();
+  }
+
+  function shortRest(){
+    var list = read(), n=0;
+    list.forEach(function(r){ if (r.reset==='curto' && r.current<r.max){ r.current=r.max; n++; } });
+    write(list); render(); toast(n?'Recursos de descanso curto restaurados':'Nada para restaurar no descanso curto');
+  }
+  function longRestReset(){
+    var list = read(); if (!list.length) return;
+    list.forEach(function(r){ r.current = r.max; });
+    write(list); render();
+  }
+
+  // ---------- form (adicionar/editar) ----------
+  function ensureForm(){
+    if (document.getElementById('v59-overlay')) return;
+    var ov = document.createElement('div'); ov.id='v59-overlay'; ov.className='v59-overlay hidden';
+    ov.innerHTML =
+      '<div class="v59-sheet">'+
+        '<div class="card-title" id="v59-form-title">Novo recurso</div>'+
+        '<label>Nome</label><input id="v59-f-name" placeholder="ex: Fúria, Ki, Canalizar Divindade">'+
+        '<label>Usos máximos</label><input id="v59-f-max" type="number" min="1" max="99" value="3">'+
+        '<label>Recupera em</label><select id="v59-f-reset"><option value="longo">Descanso longo</option><option value="curto">Descanso curto</option></select>'+
+        '<div style="display:flex;gap:6px;margin-top:14px">'+
+          '<button class="btn btn-sm btn-gold" type="button" id="v59-f-save">Salvar</button>'+
+          '<button class="btn btn-sm btn-ghost" type="button" id="v59-f-cancel">Cancelar</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if (e.target===ov) closeForm(); });
+    ov.querySelector('#v59-f-cancel').addEventListener('click', closeForm);
+    ov.querySelector('#v59-f-save').addEventListener('click', saveForm);
+  }
+  var editingId = null;
+  function openForm(r){
+    ensureForm();
+    editingId = r ? r.id : null;
+    document.getElementById('v59-form-title').textContent = r ? 'Editar recurso' : 'Novo recurso';
+    document.getElementById('v59-f-name').value = r ? r.name : '';
+    document.getElementById('v59-f-max').value = r ? r.max : 3;
+    document.getElementById('v59-f-reset').value = r ? r.reset : 'longo';
+    document.getElementById('v59-overlay').classList.remove('hidden');
+  }
+  function closeForm(){ document.getElementById('v59-overlay')?.classList.add('hidden'); }
+  function saveForm(){
+    var name = (document.getElementById('v59-f-name').value||'').trim();
+    var max = clamp(document.getElementById('v59-f-max').value, 1, 99);
+    var reset = document.getElementById('v59-f-reset').value==='curto' ? 'curto' : 'longo';
+    if (!name){ toast('Dê um nome ao recurso'); return; }
+    var list = read();
+    if (editingId){
+      var r = list.find(function(x){ return x.id===editingId; });
+      if (r){ r.name=name; r.max=max; r.current=Math.min(r.current, max); r.reset=reset; }
+    } else {
+      list.push({ id:uid(), name:name, max:max, current:max, reset:reset });
+    }
+    write(list); render(); closeForm();
+  }
+
+  window.v59ClassResHealthCheck = function(){
+    var r = { count:read().length, card:!!document.getElementById('v59-card'), longRestHooked:!!window.__v59_lr };
+    console.table(r); return r;
+  };
+
+  // ---------- hook descanso longo ----------
+  var _long = window.v16LongRest;
+  if (typeof _long === 'function'){
+    window.__v59_lr = true;
+    window.v16LongRest = function(){ var r = _long.apply(this, arguments); try { longRestReset(); } catch(e){} return r; };
+  }
+
+  // ---------- snapshot ----------
+  var _build = window.v30BuildSnapshot;
+  window.v30BuildSnapshot = function(){ var snap = _build?_build.apply(this,arguments):{}; try { snap.classResources = read(); } catch(e){} return snap; };
+  var _restore = window.v30RestoreSnapshot;
+  window.v30RestoreSnapshot = function(snapshot){ var r = _restore?_restore.apply(this,arguments):undefined; try { if (snapshot && Array.isArray(snapshot.classResources)){ write(snapshot.classResources); render(); } } catch(e){} return r; };
+
+  // ---------- init ----------
+  injectStyle();
+  ensureCard();
+  render();
+})();
+</script>
+
+
+<script>
+/* ============================================================
+   v60 — PREPARAÇÃO DE MAGIAS (PHB 2014)
+   - Toggle "preparada" por magia (truques = sempre prontos)
+   - Contador: preparadas X / sugerido (mod de conjuração + nível)
+   - Filtro "só preparadas"
+   - Aditivo: wrap de renderMySpells (enriquece o DOM). O campo
+     spells[i].prepared já persiste junto do array spells.
+   ============================================================ */
+(function(){
+  if (window.__v60Prepare) return;
+  window.__v60Prepare = true;
+
+  var filter = 'todas';
+  function getSpells(){ try { return (typeof spells !== 'undefined' && Array.isArray(spells)) ? spells : null; } catch(e){ return null; } }
+  function save(){ try { window.saveDebounce && window.saveDebounce(); } catch(e){} }
+
+  function injectStyle(){
+    if (document.getElementById('v60-style')) return;
+    var s = document.createElement('style'); s.id = 'v60-style';
+    s.textContent =
+      '.v60-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:var(--panel3,#f6ead6);border:1px solid var(--border,#d0ad72);border-radius:10px;padding:8px 11px;margin-bottom:9px}'+
+      '.v60-count{font-size:12px;color:var(--parch2,#4b3a29)}'+
+      '.v60-count strong{color:var(--gold2,#7b4f13);font-size:14px}'+
+      '.v60-sug{color:var(--parch3,#7a664d)}'+
+      '.v60-filters{display:flex;gap:5px}'+
+      '.v60-filters button{font-size:10px;font-weight:700;border:1px solid var(--border,#d0ad72);background:var(--panel2,#fffaf1);color:var(--parch3,#7a664d);border-radius:999px;padding:4px 10px;cursor:pointer}'+
+      '.v60-filters button.active{border-color:var(--gold,#a8731f);background:rgba(168,115,31,.14);color:var(--gold2,#7b4f13)}'+
+      '.v60-prep{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;border:1px solid var(--border,#d0ad72);background:var(--panel2,#fffaf1);color:var(--parch3,#7a664d);border-radius:8px;padding:3px 9px;cursor:pointer;margin-bottom:6px}'+
+      '.v60-prep.on{border-color:var(--gold,#a8731f);background:rgba(168,115,31,.16);color:var(--gold2,#7b4f13)}'+
+      '.v60-cantrip{display:inline-block;font-size:10px;font-weight:700;color:var(--blue3,#245d86);background:rgba(36,93,134,.1);border-radius:8px;padding:3px 9px;margin-bottom:6px}';
+    document.head.appendChild(s);
+  }
+
+  function suggested(){
+    var attr = document.getElementById('spell-attr') && document.getElementById('spell-attr').value;
+    var lvl = parseInt(document.getElementById('pnivel') && document.getElementById('pnivel').value) || 1;
+    var mod = (attr && window.getModWithItems) ? window.getModWithItems(attr) : 0;
+    return Math.max(1, mod + lvl);
+  }
+
+  // barra de contagem/filtro acima da lista (irmã de #spell-list, sobrevive ao re-render)
+  function ensureBar(){
+    var list = document.getElementById('spell-list'); if (!list) return;
+    var bar = document.getElementById('v60-bar');
+    if (!bar){
+      bar = document.createElement('div'); bar.id = 'v60-bar'; bar.className = 'v60-bar';
+      bar.innerHTML =
+        '<div class="v60-count">Preparadas: <strong id="v60-x">0</strong> <span class="v60-sug">/ sugerido <span id="v60-y">0</span> (mod + nível)</span></div>'+
+        '<div class="v60-filters"><button data-f="todas" class="active">Todas</button><button data-f="prep">Só preparadas</button></div>';
+      list.parentNode.insertBefore(bar, list);
+      bar.querySelector('[data-f="todas"]').addEventListener('click', function(){ filter='todas'; syncFilterButtons(); enhance(); });
+      bar.querySelector('[data-f="prep"]').addEventListener('click', function(){ filter='prep'; syncFilterButtons(); enhance(); });
+    }
+  }
+  function syncFilterButtons(){
+    var bar = document.getElementById('v60-bar'); if (!bar) return;
+    bar.querySelectorAll('.v60-filters button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-f')===filter); });
+  }
+
+  function enhance(){
+    var sp = getSpells(); if (!sp) return;
+    var list = document.getElementById('spell-list'); if (!list) return;
+    ensureBar();
+    var cards = list.querySelectorAll('.spell-card');
+    var prepared = 0;
+    Array.prototype.forEach.call(cards, function(card){
+      var mm = String(card.innerHTML).match(/spells\[(\d+)\]/);
+      if (!mm) return;
+      var i = parseInt(mm[1], 10); var s = sp[i]; if (!s) return;
+      var isCantrip = String(s.nivel) === '0';
+      if (s.prepared && !isCantrip) prepared++;
+      // injeta o controle uma vez por card
+      if (!card.querySelector('.v60-prep') && !card.querySelector('.v60-cantrip')){
+        var ctrl;
+        if (isCantrip){
+          ctrl = document.createElement('span'); ctrl.className = 'v60-cantrip'; ctrl.textContent = '✦ Truque — sempre pronto';
+        } else {
+          ctrl = document.createElement('button'); ctrl.type = 'button'; ctrl.className = 'v60-prep' + (s.prepared?' on':'');
+          ctrl.textContent = s.prepared ? '★ Preparada' : '☆ Preparar';
+          ctrl.addEventListener('click', function(e){
+            e.stopPropagation();
+            s.prepared = !s.prepared; save();
+            ctrl.classList.toggle('on', !!s.prepared);
+            ctrl.textContent = s.prepared ? '★ Preparada' : '☆ Preparar';
+            updateCount(); applyFilter();
+          });
+        }
+        card.insertBefore(ctrl, card.firstChild);
+      }
+      // estado de filtro
+      card.style.display = (filter==='prep' && !isCantrip && !s.prepared) ? 'none' : '';
+    });
+    updateCount();
+  }
+  function applyFilter(){
+    var sp = getSpells(); if (!sp) return;
+    var list = document.getElementById('spell-list'); if (!list) return;
+    Array.prototype.forEach.call(list.querySelectorAll('.spell-card'), function(card){
+      var mm = String(card.innerHTML).match(/spells\[(\d+)\]/); if (!mm) return;
+      var s = sp[parseInt(mm[1],10)]; if (!s) return;
+      var isCantrip = String(s.nivel)==='0';
+      card.style.display = (filter==='prep' && !isCantrip && !s.prepared) ? 'none' : '';
+    });
+  }
+  function updateCount(){
+    var sp = getSpells(); if (!sp) return;
+    var x = sp.filter(function(s){ return String(s.nivel)!=='0' && s.prepared; }).length;
+    var ex = document.getElementById('v60-x'), ey = document.getElementById('v60-y');
+    if (ex) ex.textContent = x;
+    if (ey) ey.textContent = suggested();
+  }
+
+  window.v60PrepareHealthCheck = function(){
+    var sp = getSpells();
+    var r = { wrapped:!!window.__v60_rms, spellsReachable:!!sp, prepared:sp?sp.filter(function(s){return s.prepared&&String(s.nivel)!=='0';}).length:'?', suggested:suggested(), filter:filter };
+    console.table(r); return r;
+  };
+
+  // ---------- wrap renderMySpells ----------
+  var _rms = window.renderMySpells;
+  if (typeof _rms === 'function'){
+    window.__v60_rms = true;
+    window.renderMySpells = function(){ var r = _rms.apply(this, arguments); try { enhance(); } catch(e){} return r; };
+  }
+
+  injectStyle();
+  try { enhance(); } catch(e){}
+})();
+</script>
+
+
+<script>
+/* ============================================================
+   v61 — RETRATO + BIO do personagem (aba Ficha)
+   - Foto (upload com redimensionamento p/ ~512px, ou URL)
+   - Campos: Aparência, Personalidade, Ideais, Vínculos, Defeitos, História
+   - Persiste em storage próprio + snapshot (v30Build/RestoreSnapshot)
+   ============================================================ */
+(function(){
+  if (window.__v61Profile) return;
+  window.__v61Profile = true;
+
+  var KEY = 'dnd_v61_profile';
+  var FIELDS = [
+    ['aparencia','Aparência','Idade, altura, traços marcantes, vestimenta...'],
+    ['personalidade','Traços de Personalidade','Como o personagem age e fala'],
+    ['ideais','Ideais','No que acredita / o que o move'],
+    ['vinculos','Vínculos','Pessoas, lugares ou coisas importantes'],
+    ['defeitos','Defeitos','Fraquezas, vícios, medos'],
+    ['historia','História','Origem e passado do personagem']
+  ];
+  var saveTimer = null;
+
+  function read(){ try { return JSON.parse(localStorage.getItem(KEY)||'{}') || {}; } catch(e){ return {}; } }
+  function write(o){ try { localStorage.setItem(KEY, JSON.stringify(o||{})); } catch(e){} }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+  function toast(m){ try { window.showToast && window.showToast(m); } catch(e){} }
+  function debouncedSave(){ if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(function(){ try { window.saveDebounce && window.saveDebounce(); } catch(e){} }, 400); }
+
+  function injectStyle(){
+    if (document.getElementById('v61-style')) return;
+    var s = document.createElement('style'); s.id = 'v61-style';
+    s.textContent =
+      '.v61-top{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}'+
+      '.v61-photo{width:92px;height:92px;border-radius:12px;border:1px solid var(--border2,#a8731f);background:var(--panel3,#f6ead6);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center}'+
+      '.v61-photo img{width:100%;height:100%;object-fit:cover}'+
+      '.v61-photo .v61-ph{font-size:30px;opacity:.4}'+
+      '.v61-photo-actions{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}'+
+      '.v61-url{font-size:12px;padding:6px 9px;border:1px solid var(--border,#d0ad72);border-radius:8px;background:var(--panel3,#f6ead6);color:var(--parch,#241b12);width:100%}'+
+      '.v61-field{margin-top:8px}'+
+      '.v61-field label{display:block;font-size:11px;color:var(--gold2,#7b4f13);font-weight:700;margin-bottom:3px}'+
+      '.v61-field textarea{width:100%;min-height:48px;font-size:12px;font-family:inherit;padding:7px 9px;border:1px solid var(--border,#d0ad72);border-radius:8px;background:var(--panel3,#f6ead6);color:var(--parch,#241b12);resize:vertical}';
+    document.head.appendChild(s);
+  }
+
+  function renderPhoto(){
+    var box = document.getElementById('v61-photo'); if (!box) return;
+    var p = read();
+    box.innerHTML = p.photo ? '<img src="'+esc(p.photo)+'" alt="retrato">' : '<span class="v61-ph">🧝</span>';
+  }
+  function setPhoto(dataUrl){ var p = read(); p.photo = dataUrl; write(p); renderPhoto(); debouncedSave(); }
+
+  function downscale(src, cb){
+    try {
+      var img = new Image();
+      img.onload = function(){
+        var max = 512, w = img.width, h = img.height;
+        if (w > max || h > max){ if (w >= h){ h = Math.round(h*max/w); w = max; } else { w = Math.round(w*max/h); h = max; } }
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        try { cb(c.toDataURL('image/jpeg', 0.82)); } catch(e){ cb(src); }
+      };
+      img.onerror = function(){ cb(src); };
+      img.src = src;
+    } catch(e){ cb(src); }
+  }
+  function onFile(e){
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    if (!/^image\//.test(f.type)){ toast('Selecione uma imagem'); return; }
+    var reader = new FileReader();
+    reader.onload = function(){ downscale(String(reader.result||''), setPhoto); };
+    reader.readAsDataURL(f);
+    try { e.target.value = ''; } catch(_){}
+  }
+
+  function ensureCard(){
+    var ficha = document.getElementById('ficha');
+    if (!ficha || document.getElementById('v61-card')) return;
+    var card = document.createElement('div');
+    card.className = 'card'; card.id = 'v61-card';
+    var fieldsHtml = FIELDS.map(function(f){
+      return '<div class="v61-field"><label>'+esc(f[1])+'</label><textarea id="v61-'+f[0]+'" placeholder="'+esc(f[2])+'"></textarea></div>';
+    }).join('');
+    card.innerHTML =
+      '<div class="card-title">🖼️ Retrato & História</div>'+
+      '<div class="v61-top">'+
+        '<div class="v61-photo" id="v61-photo"><span class="v61-ph">🧝</span></div>'+
+        '<div class="v61-photo-actions">'+
+          '<button class="btn btn-sm btn-gold btn-block" type="button" id="v61-upload">Enviar foto</button>'+
+          '<input class="v61-url" id="v61-photo-url" placeholder="ou cole uma URL de imagem">'+
+          '<button class="btn btn-xs btn-ghost" type="button" id="v61-clear">Remover foto</button>'+
+          '<input type="file" id="v61-file" accept="image/*" style="display:none">'+
+        '</div>'+
+      '</div>'+
+      fieldsHtml;
+    ficha.appendChild(card);
+
+    card.querySelector('#v61-upload').addEventListener('click', function(){ card.querySelector('#v61-file').click(); });
+    card.querySelector('#v61-file').addEventListener('change', onFile);
+    card.querySelector('#v61-clear').addEventListener('click', function(){ var p=read(); delete p.photo; write(p); renderPhoto(); debouncedSave(); });
+    card.querySelector('#v61-photo-url').addEventListener('change', function(){ var u=this.value.trim(); if (u) setPhoto(u); });
+    FIELDS.forEach(function(f){
+      var ta = card.querySelector('#v61-'+f[0]);
+      ta.addEventListener('input', function(){ var p=read(); p[f[0]]=ta.value; write(p); debouncedSave(); });
+    });
+  }
+
+  function populate(){
+    var p = read();
+    var url = document.getElementById('v61-photo-url'); if (url) url.value = (p.photo && p.photo.indexOf('data:')!==0) ? p.photo : '';
+    FIELDS.forEach(function(f){ var ta = document.getElementById('v61-'+f[0]); if (ta) ta.value = p[f[0]] || ''; });
+    renderPhoto();
+  }
+
+  window.v61ProfileHealthCheck = function(){
+    var p = read();
+    var r = { card:!!document.getElementById('v61-card'), hasPhoto:!!p.photo, photoKB:p.photo?Math.round(p.photo.length/1024):0,
+      filled:FIELDS.filter(function(f){ return !!p[f[0]]; }).map(function(f){ return f[0]; }) };
+    console.table(r); return r;
+  };
+
+  // ---------- snapshot ----------
+  var _build = window.v30BuildSnapshot;
+  window.v30BuildSnapshot = function(){ var snap = _build?_build.apply(this,arguments):{}; try { snap.v61Profile = read(); } catch(e){} return snap; };
+  var _restore = window.v30RestoreSnapshot;
+  window.v30RestoreSnapshot = function(snapshot){
+    var r = _restore?_restore.apply(this,arguments):undefined;
+    try { if (snapshot && snapshot.v61Profile && typeof snapshot.v61Profile==='object'){ write(snapshot.v61Profile); populate(); } } catch(e){}
+    return r;
+  };
+
+  // ---------- init ----------
+  injectStyle();
+  ensureCard();
+  populate();
+})();
+</script>
+
+
+<script>
+/* ============================================================
+   v62 — PROGRESSÃO DE CLASSE (1–20) — visualizador
+   - Mostra a linha evolutiva completa da classe selecionada
+     (lê CLASS_FEATURES) com o nível atual destacado
+   - Atualiza ao trocar classe (#pclasse) ou nível (#pnivel)
+   - Card na aba Ficha; só leitura, nada persiste
+   ============================================================ */
+(function(){
+  if (window.__v62Progress) return;
+  window.__v62Progress = true;
+
+  function getFeatures(){ try { return (typeof CLASS_FEATURES !== 'undefined') ? CLASS_FEATURES : null; } catch(e){ return null; } }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+
+  function injectStyle(){
+    if (document.getElementById('v62-style')) return;
+    var s = document.createElement('style'); s.id = 'v62-style';
+    s.textContent =
+      '#v62-card .v62-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}'+
+      '#v62-card.collapsed .v62-body{display:none}'+
+      '.v62-body{max-height:340px;overflow-y:auto;margin-top:8px;-webkit-overflow-scrolling:touch}'+
+      '.v62-row{display:flex;gap:9px;align-items:flex-start;padding:6px 4px;border-bottom:1px solid rgba(168,115,31,.16)}'+
+      '.v62-row:last-child{border-bottom:none}'+
+      '.v62-lvl{flex-shrink:0;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:var(--panel3,#f6ead6);border:1px solid var(--border,#d0ad72);color:var(--parch3,#7a664d)}'+
+      '.v62-feat{flex:1;font-size:12px;line-height:1.4;color:var(--parch2,#4b3a29);padding-top:3px}'+
+      '.v62-row.got .v62-lvl{background:rgba(168,115,31,.16);border-color:var(--gold,#a8731f);color:var(--gold2,#7b4f13)}'+
+      '.v62-row.got .v62-feat{color:var(--parch,#241b12)}'+
+      '.v62-row.cur{background:rgba(168,115,31,.1);border-radius:8px}'+
+      '.v62-row.cur .v62-lvl{background:var(--gold,#a8731f);color:#fff8ec;box-shadow:0 0 0 2px rgba(168,115,31,.3)}'+
+      '.v62-row.future{opacity:.62}'+
+      '.v62-empty{font-size:12px;color:var(--parch3,#7a664d);padding:10px;text-align:center}';
+    document.head.appendChild(s);
+  }
+
+  function ensureCard(){
+    var ficha = document.getElementById('ficha');
+    if (!ficha || document.getElementById('v62-card')) return;
+    var card = document.createElement('div');
+    card.className = 'card'; card.id = 'v62-card';
+    card.innerHTML =
+      '<div class="v62-head"><div class="card-title" style="margin:0">📈 Progressão de Classe (1–20)</div>'+
+        '<span class="info-arrow" style="font-size:13px">⌄</span></div>'+
+      '<div class="v62-body" id="v62-body"></div>';
+    ficha.appendChild(card);
+    card.querySelector('.v62-head').addEventListener('click', function(){ card.classList.toggle('collapsed'); });
+    render();
+  }
+
+  function render(){
+    var body = document.getElementById('v62-body'); if (!body) return;
+    var feats = getFeatures();
+    var cls = (document.getElementById('pclasse') && document.getElementById('pclasse').value) || '';
+    var cur = parseInt(document.getElementById('pnivel') && document.getElementById('pnivel').value) || 1;
+    var prog = feats && feats[cls];
+    if (!prog){ body.innerHTML = '<div class="v62-empty">Escolha uma classe para ver a progressão completa.</div>'; return; }
+    var html = '';
+    for (var lvl=1; lvl<=20; lvl++){
+      var feat = prog[lvl] || '—';
+      var cls2 = lvl===cur ? 'cur' : (lvl<cur ? 'got' : (lvl===cur?'cur':'future'));
+      if (lvl<=cur && lvl!==cur) cls2='got';
+      if (lvl===cur) cls2='cur got';
+      if (lvl>cur) cls2='future';
+      html += '<div class="v62-row '+cls2+'"><span class="v62-lvl">'+lvl+'</span><span class="v62-feat">'+esc(feat)+'</span></div>';
+    }
+    body.innerHTML = html;
+  }
+  window.v62RenderProgress = render;
+
+  window.v62ProgressHealthCheck = function(){
+    var feats = getFeatures();
+    var r = { featuresReachable:!!feats, classes:feats?Object.keys(feats).length:0, card:!!document.getElementById('v62-card') };
+    console.table(r); return r;
+  };
+
+  // ---------- listeners de atualização ----------
+  function hook(){
+    var cl = document.getElementById('pclasse'); if (cl) cl.addEventListener('change', function(){ setTimeout(render,0); });
+    var nv = document.getElementById('pnivel'); if (nv) nv.addEventListener('input', function(){ setTimeout(render,0); });
+  }
+  // também re-renderiza quando a ficha é recalculada/restaurada
+  var _calc = window.calcAll;
+  if (typeof _calc === 'function'){ window.calcAll = function(){ var r=_calc.apply(this,arguments); try{ render(); }catch(e){} return r; }; }
+
+  injectStyle();
+  ensureCard();
+  hook();
 })();
 </script>
 
